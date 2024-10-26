@@ -12,6 +12,7 @@ import Register from './components/Register';
 import NotFound from './components/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
+/*
 function Logout() {
   localStorage.clear()
   return <Navigate to="/login" />
@@ -21,6 +22,7 @@ function RegisterAndLogout() {
   localStorage.clear()
   return <Register/>
 }
+*/
 
 function App() {
   const myWidth = 220
