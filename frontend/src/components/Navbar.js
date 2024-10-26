@@ -17,104 +17,116 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ListIcon from '@mui/icons-material/List';
 import WarehouseIcon from '@mui/icons-material/Warehouse';
-import { Link,useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-
-
+import LogoutIcon from '@mui/icons-material/Logout';
+import StoreIcon from '@mui/icons-material/Store';
 
 export default function Navbar(props) {
-  const {drawerWidth ,content} = props
-  const location = useLocation()
-  const path = location.pathname
+  const { drawerWidth, content } = props;
+  const location = useLocation();
+  const path = location.pathname;
+  const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
   const changeOpenStatus = () => {
-    setOpen(!open)
-  }
+    setOpen(!open);
+  };
 
+  const logOut = () => {
+    localStorage.clear();
+    navigate('/login'); // Correct way to navigate programmatically
+  };
 
   const myDrawer = (
-    <div> 
-    <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            
-              <ListItem >
-                <ListItemButton component={Link} to="/" selected={"/" === path}>
-                  <ListItemIcon>
-                  <DashboardIcon/>
-                  </ListItemIcon>
-                  <ListItemText primary={"Dashboard"} />
-                </ListItemButton>
-              </ListItem>
-              <ListItem >
-              <ListItemButton component={Link} to="/products" selected={"/products" === path}>
-                  <ListItemIcon>
-                    <ListIcon/>
-                  </ListItemIcon>
-                  <ListItemText primary={"Products"} />
-                </ListItemButton>
-              </ListItem>
-              <ListItem >
-              <ListItemButton component={Link} to="/inventory" selected={"/inventory" === path}>
-                  <ListItemIcon>
-                    <InventoryIcon/>
-                  </ListItemIcon>
-                  <ListItemText primary={"Inventory"} />
-                </ListItemButton>
-              </ListItem>
-              <ListItem >
-              <ListItemButton component={Link} to="/purchase-order" selected={"/purchase-order" === path}>
-                  <ListItemIcon>
-                    <ShoppingCartIcon/>
-                  </ListItemIcon>
-                  <ListItemText primary={"Purchase Order"} />
-                </ListItemButton>
-              </ListItem>
-              <ListItem >
-              <ListItemButton component={Link} to="/shippments" selected={"/shippments" === path}>
-                  <ListItemIcon>
-                    <LocalShippingIcon/>
-                  </ListItemIcon>
-                  <ListItemText primary={"Shippments"} />
-                </ListItemButton>
-              </ListItem>
-              <ListItem >
-              <ListItemButton component={Link} to="/users" selected={"/users" === path}>
-                  <ListItemIcon>
-                  <PeopleIcon/>
-                  </ListItemIcon>
-                  <ListItemText primary={"Users"} />
-                </ListItemButton>
-              </ListItem>
-
-          </List>
-        
-        </Box>
+    <div>
+      <Toolbar />
+      <Box sx={{ overflow: 'auto' }}>
+        <List>
+          <ListItem>
+            <ListItemButton component={Link} to="/" selected={"/" === path}>
+              <ListItemIcon>
+                <DashboardIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Dashboard"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton component={Link} to="/products" selected={"/products" === path}>
+              <ListItemIcon>
+                <ListIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Products"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton component={Link} to="/inventory" selected={"/inventory" === path}>
+              <ListItemIcon>
+                <InventoryIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Inventory"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton component={Link} to="/suppliers" selected={"/suppliers" === path}>
+              <ListItemIcon>
+                <StoreIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Suppliers"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton component={Link} to="/purchase-order" selected={"/purchase-order" === path}>
+              <ListItemIcon>
+                <ShoppingCartIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Purchase Order"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton component={Link} to="/shipments" selected={"/shipments" === path}>
+              <ListItemIcon>
+                <LocalShippingIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Shipments"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton onClick={logOut} component={Link} to="/login" selected={"/login" === path}>
+              <ListItemIcon>
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Log Out"} />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
     </div>
-  )
+  );
 
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
-          <IconButton onclick={changeOpenStatus} 
-          color= "inheret"
-          sx={{mr:2,display:{sm:"none"}}}>
-            <MenuIcon/>
-            </IconButton>
-        <WarehouseIcon/>
+          <IconButton
+            onClick={changeOpenStatus}
+            color="inherit"
+            sx={{ mr: 2, display: { sm: "none" } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <WarehouseIcon />
           <Typography variant="h6" noWrap component="div" sx={{ pl: 2 }}>
-          FMCG Inventory Management Web App
+            FMCG Inventory Management Web App
           </Typography>
         </Toolbar>
       </AppBar>
       <Drawer
         variant="permanent"
         sx={{
-          display: {xs:"none",sm:"block"},
+          display: { xs: "none", sm: "block" },
           width: drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
@@ -124,10 +136,10 @@ export default function Navbar(props) {
       </Drawer>
       <Drawer
         variant="temporary"
-        open = {open}
-        onclose = {changeOpenStatus}
+        open={open}
+        onClose={changeOpenStatus}
         sx={{
-          display: {xs:"block",sm:"none"},
+          display: { xs: "block", sm: "none" },
           width: drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
