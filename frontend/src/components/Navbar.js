@@ -17,26 +17,27 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ListIcon from '@mui/icons-material/List';
 import WarehouseIcon from '@mui/icons-material/Warehouse';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import StoreIcon from '@mui/icons-material/Store';
 
-export default function Navbar(props) {
-  const { drawerWidth, content } = props;
+export default function Navbar({ drawerWidth }) {
   const location = useLocation();
   const path = location.pathname;
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
+  //control menu size
   const changeOpenStatus = () => {
     setOpen(!open);
   };
 
+  //navigate to login page once logout button is clicked
   const logOut = () => {
     localStorage.clear();
-    navigate('/login'); // Correct way to navigate programmatically
+    navigate('/login'); 
   };
 
   const myDrawer = (
@@ -93,7 +94,7 @@ export default function Navbar(props) {
             </ListItemButton>
           </ListItem>
           <ListItem>
-            <ListItemButton onClick={logOut} component={Link} to="/login" selected={"/login" === path}>
+            <ListItemButton onClick={logOut}>
               <ListItemIcon>
                 <LogoutIcon />
               </ListItemIcon>
@@ -149,7 +150,8 @@ export default function Navbar(props) {
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Toolbar />
-        {content}
+        {/* This is where nested routes will be rendered */}
+        <Outlet />
       </Box>
     </Box>
   );

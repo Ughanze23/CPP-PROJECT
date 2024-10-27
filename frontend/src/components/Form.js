@@ -1,8 +1,8 @@
 import { useState } from "react";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
-import "../styles/Form.css"
+import "../styles/Form.css";
 import LoadingIndicator from "./LoadingIndicator";
 
 function Form({ route, method }) {
@@ -18,18 +18,18 @@ function Form({ route, method }) {
         e.preventDefault();
 
         try {
-            const res = await api.post(route, { username, password })
+            const res = await api.post(route, { username, password });
             if (method === "login") {
                 localStorage.setItem(ACCESS_TOKEN, res.data.access);
                 localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-                navigate("/")
+                navigate("/");
             } else {
-                navigate("/login")
+                navigate("/login");
             }
         } catch (error) {
-            alert(error)
+            alert(error);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     };
 
@@ -54,8 +54,18 @@ function Form({ route, method }) {
             <button className="form-button" type="submit">
                 {name}
             </button>
+            {/* show link based on method */}
+            {method === "login" ? (
+                <p>
+                    New User? <Link to="/register">Register Here..</Link>
+                </p>
+            ) : (
+                <p>
+                    Already have an account? <Link to="/login">Login Here..</Link>
+                </p>
+            )}
         </form>
     );
 }
 
-export default Form
+export default Form;

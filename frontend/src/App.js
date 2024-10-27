@@ -12,7 +12,7 @@ import Register from './components/Register';
 import NotFound from './components/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
-/*
+
 function Logout() {
   localStorage.clear()
   return <Navigate to="/login" />
@@ -22,29 +22,41 @@ function RegisterAndLogout() {
   localStorage.clear()
   return <Register/>
 }
-*/
+
 
 function App() {
-  const myWidth = 220
+  const myWidth = 230
   return (
     <div className="App">
      
-       <Navbar
-       drawerWidth = {myWidth}
-       content = {
-        <Routes>
-        <Route path=""  element= {<Home/>}/>
-        <Route path="/users"  element= {<Users/>} />
-        <Route path="/products"  element= {<Products/>} />
-        <Route path="/purchase-order"  element= {<PurchaseOrder/>} />
-        <Route path="/shipments"  element= {<Shipments/>} />
-        <Route path="/inventory"  element= {<Inventory/>} />
-       </Routes>
-       }
-       
-       />
-       
-      
+     
+     <Routes>
+      {/* Public Auth Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<RegisterAndLogout />} />
+
+      {/* Protected Routes with Navbar */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Navbar drawerWidth={myWidth} />
+          </ProtectedRoute>
+        }
+      >
+        {/* Nested Routes that will render inside Navbar via Outlet */}
+        <Route index element={<Home />} />
+        <Route path="users" element={<Users />} />
+        <Route path="products" element={<Products />} />
+        <Route path="purchase-order" element={<PurchaseOrder />} />
+        <Route path="shipments" element={<Shipments />} />
+        <Route path="inventory" element={<Inventory />} />
+      </Route>
+
+      {/* Not Found Route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+        
     </div>
   );
 }
