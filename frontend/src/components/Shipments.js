@@ -1,8 +1,9 @@
 import React from 'react'
+import api from "../api";
 
 const Shipments = () => {
   return (
-    <div>Shippments</div>
+    <div>Shipments</div>
   )
 }
 

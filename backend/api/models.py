@@ -50,7 +50,7 @@ class Product(models.Model):
 class Inventory(models.Model):
     """Inventory Table"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_inv")
-    quantity = models.IntegerField()  # Positive for additions, negative for removals
+    quantity = models.IntegerField() 
     status = models.CharField(
         max_length=50,
         choices=[("ADD", "Addition"), ("REMOVE", "Removal"), ("RETURN", "Return"), ("ADJUST", "Adjustment")]
@@ -59,7 +59,7 @@ class Inventory(models.Model):
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="inventory_updated_by")
     created_at = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateField(null=True, blank=True)
-    batch_id = models.CharField(max_length=100, editable=False, unique=True,null=True)  # Added field for batch ID
+    batch_id = models.CharField(max_length=100, editable=False, unique=True,null=True) 
 
     class Meta:
         # Ensure unique combination of product, created_at, and expiry_date for batch tracking
@@ -77,7 +77,7 @@ class Inventory(models.Model):
         if self.status in ["ADD", "RETURN"]:
             self.product.stock_quantity += self.quantity
         elif self.status in ["REMOVE", "ADJUST"]:
-            self.product.stock_quantity -= abs(self.quantity)  # Ensure decrement for REMOVE or ADJUST
+            self.product.stock_quantity -= abs(self.quantity) 
 
         self.product.save()
 
@@ -115,7 +115,7 @@ class PurchaseOrder(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="purchase_orders_created_by")
     notes = models.TextField(blank=True, null=True)
-    batch_id = models.CharField(max_length=100, editable=False, unique=True, blank=True)  # Added field for batch ID
+    batch_id = models.CharField(max_length=100, editable=False, unique=True, blank=True) 
 
     def __str__(self):
         return f"PO-{self.id} ({self.supplier.name} - {self.product.name})"
@@ -129,8 +129,8 @@ class PurchaseOrder(models.Model):
         super().save(*args, **kwargs)
         
         if self.status == "RECEIVED":
-            # Determine the expiry date for the inventory batch (you can set default duration or logic here)
-            default_expiry_period = 365  # Default expiry period of 1 year, for example
+            # Determine the expiry date for the inventory batch 
+            default_expiry_period = 365  
             expiry_date = self.expected_delivery_date + timedelta(days=default_expiry_period) if self.expected_delivery_date else None
             
             # Create an inventory record to add the received stock
@@ -140,11 +140,28 @@ class PurchaseOrder(models.Model):
                 status="ADD",
                 notes=f"Stock received from Purchase Order {self.id}",
                 updated_by=self.created_by,
-                expiry_date=expiry_date,  # Set the calculated expiry date
+                expiry_date=expiry_date, 
             )
 
 
+class Shipment(models.Model):
+    """Model for managing shipments."""
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("INACTIVE", "Inactive"),
+    ]
 
+    logistics_company = models.CharField(max_length=255)
+    contact_person = models.CharField(max_length=255)
+    email = models.EmailField(max_length=254)
+    status = models.CharField(max_length=8, choices=STATUS_CHOICES, default="ACTIVE")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    delivery_zone = models.JSONField(default=list)  # This allows for an array of numbers or text
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='shipments_created')
+
+    def __str__(self):
+        return f"{self.logistics_company} - {self.contact_person} ({self.status})"
 
 
 

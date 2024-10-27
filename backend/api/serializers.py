@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Supplier, Product, ProductCategory, PurchaseOrder, Inventory
-
+from .models import Supplier, Product, ProductCategory, PurchaseOrder, Inventory,Shipment
+from datetime import timedelta
+from django.utils import timezone
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -141,3 +142,11 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
 
         # Update the purchase order instance with the validated data
         return super().update(instance, validated_data)
+
+
+class ShipmentSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Shipment
+        fields = '__all__'

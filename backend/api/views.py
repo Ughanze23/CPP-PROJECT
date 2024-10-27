@@ -4,10 +4,10 @@ from rest_framework import generics,viewsets
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Supplier, Product, ProductCategory, Inventory, PurchaseOrder
+from .models import Supplier, Product, ProductCategory, Inventory, PurchaseOrder,Shipment
 from .serializers import (
     SupplierSerializer, ProductSerializer, ProductCategorySerializer,
-    InventorySerializer, PurchaseOrderSerializer
+    InventorySerializer, PurchaseOrderSerializer,ShipmentSerializer
 )
 import logging
 
@@ -32,11 +32,8 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        #validate data entered is correct
-        if serializer.is_valid():
-            serializer.save(created_by=self.request.user)
-        else:
-            logging.error(serializer.error)
+        """Automatically assign the creator of the category."""
+        serializer.save(created_by=self.request.user)
 
 class ProductViewSet(viewsets.ModelViewSet):
     """A viewset for viewing and editing products"""
@@ -73,4 +70,14 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+class ShipmentViewSet(viewsets.ModelViewSet):
+    """A viewset for viewing, creating, updating, and deleting shipment instances."""
+    queryset = Shipment.objects.all()
+    serializer_class = ShipmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        """Override to set the user who created the shipment."""
         serializer.save(created_by=self.request.user)
