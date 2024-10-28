@@ -11,7 +11,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import NotFound from './components/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
-
+import Suppliers from './components/Suppliers';
 
 function Logout() {
   localStorage.clear()
@@ -46,7 +46,7 @@ function App() {
       >
         {/* Nested Routes that will render inside Navbar via Outlet */}
         <Route index element={<Home />} />
-        <Route path="users" element={<Users />} />
+        <Route path="suppliers" element={<Suppliers />} />
         <Route path="products" element={<Products />} />
         <Route path="purchase-order" element={<PurchaseOrder />} />
         <Route path="shipments" element={<Shipments />} />
