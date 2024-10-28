@@ -1,6 +1,6 @@
 import React from 'react'
 
-import Form from "./Forms/LoginForm"
+import Form from "./LoginForm"
 
 function Register() {
     return <Form route="/api/user/register/" method="register" />
