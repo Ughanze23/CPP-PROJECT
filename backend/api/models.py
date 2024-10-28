@@ -88,7 +88,7 @@ class Supplier(models.Model):
     """Supplier Table"""
     name = models.CharField(max_length=200)
     contact_email = models.EmailField(blank=True, null=True)
-    contact_phone = models.CharField(max_length=20, blank=True, null=True)
+    contact_phone = models.CharField(max_length=12, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="supplier_created_by")
     created_at = models.DateTimeField(auto_now_add=True)
