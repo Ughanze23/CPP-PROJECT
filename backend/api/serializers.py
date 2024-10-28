@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import Supplier, Product, ProductCategory, PurchaseOrder, Inventory,Shipment
 from datetime import timedelta
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,6 +22,12 @@ class ProductCategorySerializer(serializers.ModelSerializer):
         model = ProductCategory
         fields = ["id", "name", "description", "created_by", "created_at", "updated_at"]
         read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def validate_name(self, value):
+        """Check that the category name is unique."""
+        if ProductCategory.objects.filter(name=value).exists():
+            raise ValidationError("A category with this name already exists.")
+        return value
 
     def create(self, validated_data):
         """Create a Product Category"""
@@ -41,6 +48,12 @@ class ProductSerializer(serializers.ModelSerializer):
             "price", "stock_quantity", "created_by", "created_at", "updated_at"
         ]
         read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def validate_name(self, value):
+        """Check that the product name is unique."""
+        if Product.objects.filter(name=value).exists():
+            raise ValidationError("A product with this name already exists.")
+        return value
 
     def create(self, validated_data):
         """Create a Product"""
@@ -77,6 +90,24 @@ class SupplierSerializer(serializers.ModelSerializer):
         model = Supplier
         fields = ["id", "name", "contact_email", "contact_phone", "address", "created_by", "created_at", "updated_at"]
         read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def validate_name(self, value):
+        """Check that the supplier name is unique."""
+        if Supplier.objects.filter(name=value).exists():
+            raise ValidationError("A supplier with this name already exists.")
+        return value
+
+    def validate_contact_email(self, value):
+        """Check that the supplier email is unique."""
+        if Supplier.objects.filter(contact_email=value).exists():
+            raise ValidationError("A supplier with this email already exists.")
+        return value
+
+    def validate_contact_phone(self, value):
+        """Check that the supplier phone number is unique."""
+        if Supplier.objects.filter(contact_phone=value).exists():
+            raise ValidationError("A supplier with this phone number already exists.")
+        return value
 
     def create(self, validated_data):
         """Create a new Supplier"""
@@ -145,8 +176,27 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
 
 
 class ShipmentSerializer(serializers.ModelSerializer):
-    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
-
     class Meta:
         model = Shipment
-        fields = '__all__'
+        fields = [
+            "id", "logistics_company", "contact_person", "email", 
+            "status", "delivery_zone", "created_by", "created_at", "updated_at"
+        ]
+        read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def validate_logistics_company(self, value):
+        """Check that the logistics company name is unique."""
+        if Shipment.objects.filter(logistics_company=value).exists():
+            raise ValidationError("logistics company with this name already exists.")
+        return value
+
+    def validate_email(self, value):
+        """Check that the email is unique."""
+        if Shipment.objects.filter(email=value).exists():
+            raise ValidationError("logistics company with this email already exists.")
+        return value
+
+    def create(self, validated_data):
+        """Create a new Shipment"""
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
