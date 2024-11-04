@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "s3_manager_package_nci_23384069"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Ikenna Ughanze", email="ughanzepolycarp@gmail.com" },
 ]
