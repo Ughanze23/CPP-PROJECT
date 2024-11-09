@@ -20,7 +20,7 @@ class Product(models.Model):
     """Products Table"""
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
-    category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE, related_name="products")
+    category =  models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, related_name="products")
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock_quantity = models.PositiveIntegerField()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="products_created_by")
@@ -59,7 +59,7 @@ class Inventory(models.Model):
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="inventory_updated_by")
     created_at = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateField(null=True, blank=True)
-    batch_id = models.CharField(max_length=100, editable=False, unique=True,null=True) 
+    batch_id = models.CharField(max_length=100, editable=False, unique=True, null=True) 
 
     class Meta:
         # Ensure unique combination of product, created_at, and expiry_date for batch tracking
@@ -67,22 +67,26 @@ class Inventory(models.Model):
 
     def save(self, *args, **kwargs):
         """Override the save method to automatically update the stock quantity of the related product and set batch_id."""
-        if not self.batch_id:
-            # Generate a batch_id based on product id and created_at timestamp (formatted as YYYYMMDDHHMMSS)
-            self.batch_id = f"{self.product.id}-{self.created_at.strftime('%Y%m%d%H%M%S')}"
-        
+        # Save the instance first to populate created_at
         super().save(*args, **kwargs)
+
+        # Now, generate batch_id if it wasn't set before
+        if not self.batch_id:
+            self.batch_id = f"{self.product.id}-{self.created_at.strftime('%Y%m%d%H%M%S')}"
+            # Save again to store the batch_id in the database
+            super().save(update_fields=['batch_id'])
 
         # Update the product's stock quantity based on this inventory record
         if self.status in ["ADD", "RETURN"]:
             self.product.stock_quantity += self.quantity
         elif self.status in ["REMOVE", "ADJUST"]:
-            self.product.stock_quantity -= abs(self.quantity) 
+            self.product.stock_quantity -= abs(self.quantity)
 
         self.product.save()
 
     def __str__(self):
         return f"{self.product.name} - {self.status} ({self.quantity}) - Expiry: {self.expiry_date}"
+
 
 class Supplier(models.Model):
     """Supplier Table"""
@@ -162,6 +166,3 @@ class Shipment(models.Model):
 
     def __str__(self):
         return f"{self.logistics_company} - {self.contact_person} ({self.status})"
-
-
-
