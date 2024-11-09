@@ -43,7 +43,7 @@ class Product(models.Model):
                 status="ADD",
                 notes="Initial stock on product creation",
                 updated_by=self.created_by,
-                expiry_date=timezone.now() + timedelta(days=365),  # Default expiry set to 1 year from now
+                expiry_date=timezone.now() + timedelta(days=180),  # Default expiry set to 6 months from now
             )
 
 
