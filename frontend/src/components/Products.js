@@ -15,7 +15,7 @@ const Products = () => {
     ProductDescription: '',
     price: 0,
     stock_quantity: 0,
-    category: ""
+    category_id: 0
   };
 
   const [showForm1, setShowForm1] = useState(false);
@@ -41,7 +41,7 @@ const Products = () => {
     fetchCategories();
   }, []);
 
-  // convert image to base64 string
+  // Convert image to base64 string
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -56,49 +56,72 @@ const Products = () => {
     }
   };
 
-  //handle image upload to s3 bucket
+  // Handle image upload to S3 bucket
   const handleImageUpload = async (data) => {
     try {
-      const response = await fetch("https://a3cmzyi2pji6ncqm2dp64ngbtm0qnrvj.lambda-url.eu-west-1.on.aws/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          image: Base64image, 
-        category : data.category,
-      name : data.ProductName}),
+      console.log("Starting image upload with data:", {
+        image: Base64image,
+        category: data.category,
+        name: data.ProductName
       });
-      if (!response.ok) throw new Error("Failed to upload Product image");
+  
+      const response = await fetch("https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({ 
+          "image": Base64image, 
+          "category": data.category,
+          "name": data.ProductName
+        }),
+      });
+  
+      console.log("Upload response status:", response.status);
+  
+      if (!response.ok) {
+        // Log the response body for further debugging if available
+        const errorText = await response.text();
+        console.error("Failed to upload Product image. Response:", errorText);
+        throw new Error("Failed to upload Product image");
+      }
+  
       const result = await response.json();
+      console.log("Image upload successful. Result:", result);
+  
       setSnackbarMessage("Image uploaded successfully!");
       setSnackbarSeverity("success");
+      return true; // Image upload successful
     } catch (error) {
-      setSnackbarMessage("Error uploading Product image ");
+      console.error("Error in handleImageUpload:", error);
+      setSnackbarMessage("Error uploading Product image");
       setSnackbarSeverity("error");
+      return false; // Image upload failed
     } finally {
       setSnackbarOpen(true);
     }
   };
 
-  // show or hide create categories form
+  // Show or hide create categories form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
   };
 
-    // show or hide create products form
+  // Show or hide create products form
   const handleForm2 = () => {
     setShowForm2(!showForm2);
     reset();
   };
 
-  //handle closing notifications
+  // Handle closing notifications
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
 
-      // Handle Category Form Submission
+  // Handle Category Form Submission
   const onSubmit1 = async (data) => {
-
     try {
       await api.post("/api/categories/", {
         name: data.CategoryName,
@@ -108,7 +131,6 @@ const Products = () => {
       setSnackbarSeverity("success");
       reset();
       handleForm1();
-
     } catch (error) {
       console.error("Failed to create category:", error);
       setSnackbarMessage("Error creating category. Please try again.");
@@ -120,23 +142,32 @@ const Products = () => {
   };
 
   const onSubmit2 = async (data) => {
-    //check image is added before submitting form
+    // Check if image is added before submitting form
     if (!Base64image) {
       setSnackbarMessage("Please upload a Product image first");
       setSnackbarSeverity("warning");
       setSnackbarOpen(true);
       return;
     }
-    handleImageUpload();
+
+    const uploadSuccess = await handleImageUpload(data); // Wait for image upload to complete
+
+    if (!uploadSuccess) {
+      // If image upload failed, don't submit the form
+      setSnackbarMessage("Image upload failed, form not submitted");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
 
     // Handle Product form Submission
     try {
       await api.post("/api/products/", {
-        name : data.ProductName,
+        name: data.ProductName,
         description: data.ProductDescription,
-        category:  data.category,
-        price: data.price,
-        stock_quantity: data.stock_quantity
+        category_id: parseInt(data.category),
+        price: parseFloat(data.price),
+        stock_quantity: parseInt(data.stock_quantity)
       });
       
       setSnackbarMessage("Product created successfully!");
@@ -259,9 +290,8 @@ const Products = () => {
                   )}
                 />
                 {/* Image Upload Field */}
-                <input type="file"  label="Product Image" accept="image/*" onChange={handleImageChange} />
+                <input type="file" label="Product Image" accept="image/*" onChange={handleImageChange} />
                 {isImageUploading && <CircularProgress size={24} />}
-
 
                 <Button type="submit" variant="contained" fullWidth disabled={!Base64image}>
                   Create
