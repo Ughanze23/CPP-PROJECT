@@ -119,7 +119,7 @@ export default function Navbar({ drawerWidth }) {
           </IconButton>
           <WarehouseIcon />
           <Typography variant="h6" noWrap component="div" sx={{ pl: 2 }}>
-            FMCG Inventory Management Web App
+            FMCG Inventory Management App
           </Typography>
         </Toolbar>
       </AppBar>

@@ -10,7 +10,7 @@ router.register(r'products', ProductViewSet, basename='product')
 router.register(r'inventory', InventoryViewSet, basename='inventory')
 router.register(r'purchase-orders', PurchaseOrderViewSet, basename='purchase-order')
 router.register(r'suppliers', SupplierViewSet, basename='supplier')
-router.register(r'shipping', ShipmentViewSet, basename='shipping')
+router.register(r'shipping', ShipmentViewSet, basename='shipment')
 
 
 # Define urlpatterns

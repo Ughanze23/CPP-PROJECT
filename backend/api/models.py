@@ -20,7 +20,7 @@ class Product(models.Model):
     """Products Table"""
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
-    category =  models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, related_name="products")
+    category = models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, related_name="products")
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock_quantity = models.PositiveIntegerField()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="products_created_by")
@@ -112,7 +112,7 @@ class PurchaseOrder(models.Model):
     ]
 
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="purchase_orders_supplier")
-    product = models.ForeignKey("Product", on_delete=models.CASCADE, related_name="purchase_orders_product")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="purchase_orders_product")
     quantity = models.PositiveIntegerField()
     order_date = models.DateTimeField(auto_now_add=True)
     expected_delivery_date = models.DateField(blank=True, null=True)
@@ -125,16 +125,17 @@ class PurchaseOrder(models.Model):
         return f"PO-{self.id} ({self.supplier.name} - {self.product.name})"
 
     def save(self, *args, **kwargs):
-        """ Handle inventory when an order is marked as 'Received' """
-        # If the batch_id is not set, generate it using the PO's ID and order date.
+        """Handle inventory when an order is marked as 'Received'."""
+        super().save(*args, **kwargs)  
+
+        # Now, set the batch_id if it wasn't set before
         if not self.batch_id:
             self.batch_id = f"PO-{self.id}-{self.order_date.strftime('%Y%m%d%H%M%S')}"
-        
-        super().save(*args, **kwargs)
-        
+            super().save(update_fields=['batch_id'])  
+
         if self.status == "RECEIVED":
             # Determine the expiry date for the inventory batch 
-            default_expiry_period = 365  
+            default_expiry_period = 180  
             expiry_date = self.expected_delivery_date + timedelta(days=default_expiry_period) if self.expected_delivery_date else None
             
             # Create an inventory record to add the received stock
@@ -161,7 +162,7 @@ class Shipment(models.Model):
     status = models.CharField(max_length=8, choices=STATUS_CHOICES, default="ACTIVE")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    delivery_zone = models.JSONField(default=list)  # This allows for an array of numbers or text
+    delivery_zone = models.JSONField(default=list) 
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='shipments_created')
 
     def __str__(self):
