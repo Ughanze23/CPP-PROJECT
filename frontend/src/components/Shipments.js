@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert, Typography, MenuItem, Select, FormControl, InputLabel, Checkbox, ListItemText } from '@mui/material'; 
+import { 
+  Box, 
+  Button, 
+  Snackbar, 
+  Alert, 
+  Typography, 
+  MenuItem, 
+  Select, 
+  FormControl, 
+  InputLabel, 
+  Checkbox, 
+  ListItemText } from '@mui/material'; 
 import { useForm, Controller } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
+import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
 const Shipments = () => {
   const defaultValues = {
@@ -17,8 +29,84 @@ const Shipments = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [shippingPartners, setShippingPartners] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues: defaultValues });
+
+  // Fetch shipping partners data
+  const fetchShippingPartners = async () => {
+    try {
+      const response = await api.get('/api/shipping/');
+      setShippingPartners(response.data);
+    } catch (error) {
+      console.error('Failed to fetch shipping partners:', error);
+      setSnackbarMessage('Error loading shipping partners');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShippingPartners();
+  }, []);
+
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'logistics_company',
+        header: 'Delivery Partner',
+        size: 200,
+      },
+      {
+        accessorKey: 'contact_person',
+        header: 'Contact Person',
+        size: 200,
+      },
+      {
+        accessorKey: 'email',
+        header: 'Email',
+        size: 250,
+      },
+      {
+        accessorKey: 'delivery_zone',
+        header: 'Delivery Zones',
+        size: 300,
+        Cell: ({ row }) => {
+          const zones = row.original.delivery_zone;
+          return Array.isArray(zones) 
+            ? zones.map(zone => `Dublin ${zone}`).join(', ')
+            : '';
+        },
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        size: 120,
+        Cell: ({ row }) => (
+          <Box
+            sx={{
+              backgroundColor: row.original.status ? '#e8f5e9' : '#ffebee',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              display: 'inline-block',
+            }}
+          >
+            {row.original.status ? 'Active' : 'Inactive'}
+          </Box>
+        ),
+      },
+    ],
+    []
+  );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: shippingPartners,
+    state: { isLoading: loading }
+  });
 
   const handleForm1 = () => {
     setShowForm1(!showForm1);
@@ -29,8 +117,9 @@ const Shipments = () => {
     setSnackbarOpen(false);
   };
 
+  const deliveryZones = Array.from({ length: 24 }, (_, i) => i + 1);
+
   const onSubmit1 = async (data) => {
-    // Handle Form Submission
     try {
       await api.post("/api/shipping/", {
         logistics_company: data.logistics_company,
@@ -40,14 +129,13 @@ const Shipments = () => {
       });
       setSnackbarMessage("Delivery Partner created successfully!");
       setSnackbarSeverity("success");
-      reset();  // Reset form fields after successful submission
-      handleForm1(); // Close card once form is submitted successfully
+      reset();
+      handleForm1();
+      // Refresh the table data
+      fetchShippingPartners();
     } catch (error) {
       console.error("Failed to create Delivery Partner:", error);
-      reset();  
-      handleForm1(); 
       if (error.response && error.response.data) {
-        // Check for specific error messages in different forms
         const errorMsg = 
           error.response.data.detail || 
           error.response.data.name?.[0] || 
@@ -61,17 +149,14 @@ const Shipments = () => {
       setSnackbarOpen(true);
     }
   };
-  //zones in dublin
-  const deliveryZones = Array.from({ length: 24 }, (_, i) => i + 1); // Array of numbers from 1 to 24
 
   return (
     <div>
       <Grid container spacing={2}>
-  
-        <Grid item xs={6}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', boxShadow: 3, p: 2, width: '100%' }}>
+        <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', boxShadow: 3, p: 2, width: '100%', mb: 4 }}>
             <Button variant="contained" onClick={handleForm1} fullWidth>
-              Add Delivery Company
+              Add Delivery Partner
             </Button>
 
             {showForm1 && (
@@ -129,8 +214,19 @@ const Shipments = () => {
         </Grid>
       </Grid>
 
-      {/* Snackbar for Alerts */}
-      <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
+          Delivery Partners
+        </Typography>
+        <MaterialReactTable table={table} />
+      </Box>
+
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={5000} 
+        onClose={handleCloseSnackbar} 
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
         <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>

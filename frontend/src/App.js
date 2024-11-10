@@ -1,7 +1,6 @@
 import './App.css';
 import { Routes,Route,Navigate,BrowserRouter } from 'react-router-dom';
 import Home from './components/Home';
-import Users from  './components/Users';
 import Navbar from './components/Navbar';
 import Products from './components/Products';
 import PurchaseOrder from './components/PurchaseOrder';

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert } from '@mui/material'; 
+import { Box, Button, Snackbar, Alert } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
 import MyMultiLineField from './Forms/MyMultilineField';
+import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import Typography from '@mui/material/Typography';
 
 const Suppliers = () => {
   const defaultValues = {
@@ -14,12 +16,65 @@ const Suppliers = () => {
     address: ''
   };
 
+  const [suppliers, setSuppliers] = useState([]);  
+  const [loading, setLoading] = useState(true);
   const [showForm1, setShowForm1] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
-  const { handleSubmit, control, reset } = useForm({ defaultValues: defaultValues });
+  const getData = async () => {
+    try {
+      const res = await api.get('/api/suppliers/');
+      setSuppliers(res.data);
+    } catch (error) {
+      console.error('Failed to fetch suppliers:', error);
+      setSnackbarMessage('Error loading suppliers');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'name',  
+        header: 'Name',
+        size: 150,
+      },
+      {
+        accessorKey: 'contact_email',
+        header: 'Email',
+        size: 200,
+      },
+      {
+        accessorKey: 'contact_phone',
+        header: 'Phone',
+        size: 150,
+      },
+      {
+        accessorKey: 'address',
+        header: 'Address',
+        size: 200,
+      },
+    ],
+    []
+  );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: suppliers,  
+    state: { isLoading: loading },
+   
+  });
+
+  const { handleSubmit, control, reset } = useForm({ defaultValues });
 
   const handleForm1 = () => {
     setShowForm1(!showForm1);
@@ -40,18 +95,13 @@ const Suppliers = () => {
       });
       setSnackbarMessage("Supplier created successfully!");
       setSnackbarSeverity("success");
+      getData();  
       reset();
       handleForm1();
     } catch (error) {
       console.error("Failed to create Supplier:", error);
-      reset();
-      handleForm1();
-      if (error.response && error.response.data) {
-        const errorMsg = error.response.data.detail || "Error creating Supplier. Please try again.";
-        setSnackbarMessage(errorMsg);
-      } else {
-        setSnackbarMessage("Error creating Supplier. Please try again.");
-      }
+      const errorMsg = error.response?.data?.detail || "Error creating Supplier. Please try again.";
+      setSnackbarMessage(errorMsg);
       setSnackbarSeverity("error");
     } finally {
       setSnackbarOpen(true);
@@ -60,8 +110,8 @@ const Suppliers = () => {
 
   return (
     <div>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={8} lg={6}> 
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} md={8} lg={6}>
           <Box sx={{ display: 'flex', flexDirection: 'column', boxShadow: 3, p: 2, width: '100%' }}>
             <Button variant="contained" onClick={handleForm1} fullWidth>
               Add Supplier
@@ -101,7 +151,6 @@ const Suppliers = () => {
                   placeholder="Enter Supplier Address"
                   fullWidth
                 />
-
                 <Button type="submit" variant="contained" fullWidth>
                   Add
                 </Button>
@@ -111,13 +160,25 @@ const Suppliers = () => {
         </Grid>
       </Grid>
 
-      <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
+          Suppliers
+        </Typography>
+        <MaterialReactTable table={table} />
+      </Box>
+
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={5000} 
+        onClose={handleCloseSnackbar} 
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
         <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>
     </div>
   );
-}
+};
 
 export default Suppliers;
