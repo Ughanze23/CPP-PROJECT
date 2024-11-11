@@ -10,12 +10,17 @@ import {
   Select, 
   FormControl, 
   InputLabel, 
-  Checkbox, 
+  Checkbox, IconButton,
   ListItemText } from '@mui/material'; 
 import { useForm, Controller } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import { MaterialReactTable } from 'material-react-table';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+
 
 const Shipments = () => {
   const defaultValues = {
@@ -49,10 +54,12 @@ const Shipments = () => {
     }
   };
 
+  //load data on pageload
   useEffect(() => {
     fetchShippingPartners();
   }, []);
 
+  //declare column names
   const columns = useMemo(
     () => [
       {
@@ -102,12 +109,8 @@ const Shipments = () => {
     []
   );
 
-  const table = useMaterialReactTable({
-    columns,
-    data: shippingPartners,
-    state: { isLoading: loading }
-  });
-
+  
+  //show or hide form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
@@ -119,6 +122,8 @@ const Shipments = () => {
 
   const deliveryZones = Array.from({ length: 24 }, (_, i) => i + 1);
 
+
+  //submit form
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/shipping/", {
@@ -218,7 +223,28 @@ const Shipments = () => {
         <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
           Delivery Partners
         </Typography>
-        <MaterialReactTable table={table} />
+        <MaterialReactTable 
+          columns={columns}
+          data={shippingPartners}
+          state={{ isLoading: loading }}
+        enableRowActions
+        renderRowActions={() => (
+          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+          
+            <IconButton
+              color="secondary"
+             
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+           
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        )}
+        />
       </Box>
 
       <Snackbar 

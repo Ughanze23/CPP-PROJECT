@@ -5,9 +5,15 @@ import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
 import MyMultiLineField from './Forms/MyMultilineField';
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import { MaterialReactTable } from 'material-react-table';
 import Typography from '@mui/material/Typography';
+import { IconButton } from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 
+//set default form state
 const Suppliers = () => {
   const defaultValues = {
     name: '',
@@ -16,6 +22,7 @@ const Suppliers = () => {
     address: ''
   };
 
+  //declare constants
   const [suppliers, setSuppliers] = useState([]);  
   const [loading, setLoading] = useState(true);
   const [showForm1, setShowForm1] = useState(false);
@@ -23,6 +30,7 @@ const Suppliers = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
+  //get suppliers data
   const getData = async () => {
     try {
       const res = await api.get('/api/suppliers/');
@@ -37,10 +45,12 @@ const Suppliers = () => {
     }
   };
 
+  //load data on page load
   useEffect(() => {
     getData();
   }, []);
 
+  //declare table columns
   const columns = useMemo(
     () => [
       {
@@ -67,15 +77,10 @@ const Suppliers = () => {
     []
   );
 
-  const table = useMaterialReactTable({
-    columns,
-    data: suppliers,  
-    state: { isLoading: loading },
-   
-  });
 
   const { handleSubmit, control, reset } = useForm({ defaultValues });
 
+  //hide or show form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
@@ -85,6 +90,7 @@ const Suppliers = () => {
     setSnackbarOpen(false);
   };
 
+  //handle form submission
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/suppliers/", {
@@ -164,7 +170,32 @@ const Suppliers = () => {
         <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
           Suppliers
         </Typography>
-        <MaterialReactTable table={table} />
+        <MaterialReactTable 
+        columns={columns}
+        data={suppliers}
+        state={{isLoading: loading}}
+        enableRowActions
+        renderRowActions={(row) => ( 
+          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+            <IconButton
+              color="secondary"
+              onClick={() => {
+                // Handle delete action for the current row
+              }}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+              color="error"
+              onClick={() => {
+                // Handle delete action for the current row
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        )}
+        />
       </Box>
 
       <Snackbar 

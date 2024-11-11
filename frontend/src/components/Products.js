@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert, TextField, CircularProgress } from '@mui/material'; 
+import { Box, Button, Snackbar, Alert, TextField, CircularProgress,IconButton } from '@mui/material'; 
 import { useForm, Controller } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
 import MyMultiLineField from './Forms/MyMultilineField';
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import { MaterialReactTable } from 'material-react-table';
 import Typography from '@mui/material/Typography';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 
 
+//set default state for forms
 const Products = () => {
   const defaultValues = {
     CategoryName: '',
@@ -20,6 +25,7 @@ const Products = () => {
     category_id: 0
   };
 
+  //declare constants
   const [showForm1, setShowForm1] = useState(false);
   const [showForm2, setShowForm2] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -33,6 +39,7 @@ const Products = () => {
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues });
 
+  //get categories data
   const fetchCategories = async () => {
     try {
       const response = await api.get('/api/categories/');
@@ -48,6 +55,7 @@ const Products = () => {
     }
   };
 
+  //get products data
   const fetchProducts = async () => {
     try {
       const response = await api.get('/api/products/');
@@ -70,11 +78,13 @@ const Products = () => {
     fetchProducts();
   }, []);
 
+  //delcare column data for category table
   const categoryColumns = useMemo(() => [
     { accessorKey: 'name', header: 'Category Name', size: 150 },
     { accessorKey: 'description', header: 'Description', size: 200 },
   ], []);
 
+  //declare column data for products table
   const productColumns = useMemo(() => [
     { accessorKey: 'name', header: 'Product Name', size: 150 },
     { accessorKey: 'description', header: 'Description', size: 200 },
@@ -83,18 +93,7 @@ const Products = () => {
     { accessorKey: 'category_name', header: 'Category', size: 150 },
   ], []);
 
-  const categoryTable = useMaterialReactTable({
-    columns: categoryColumns,
-    data: categories,
-    state: { isLoading: loading },
-  });
-
-  const productTable = useMaterialReactTable({
-    columns: productColumns,
-    data: products,
-    state: { isLoading: loading },
-  });
-
+  //handle image upload - convert image to base64String
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -109,6 +108,7 @@ const Products = () => {
     }
   };
 
+  //upload image to s3
   const handleImageUpload = async (data) => {
     try {
       const response = await fetch("https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/", {
@@ -141,20 +141,24 @@ const Products = () => {
     }
   };
 
+  //show or hide form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
   };
 
+  //show or hide form
   const handleForm2 = () => {
     setShowForm2(!showForm2);
     reset();
   };
 
+  //handle notifications
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
 
+  //submit category form
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/categories/", {
@@ -176,6 +180,7 @@ const Products = () => {
     }
   };
 
+  //submit products form
   const onSubmit2 = async (data) => {
     if (!Base64image) {
       setSnackbarMessage("Please upload a Product image first");
@@ -337,14 +342,56 @@ const Products = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Categories
           </Typography>
-          <MaterialReactTable table={categoryTable} />
+          <MaterialReactTable 
+          columns={categoryColumns}
+          data={categories}
+          state={{isLoading: loading}}
+          enableRowActions
+        renderRowActions={() => (
+          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+          
+            <IconButton
+              color="secondary"
+             
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+           
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        )}
+          />
         </Box>
 
         <Box sx={{ width: '60%', pl: 2 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Products
           </Typography>
-          <MaterialReactTable table={productTable} />
+          <MaterialReactTable 
+          columns={productColumns}
+          data={products}
+          state={{isLoading: loading}}
+          enableRowActions
+        renderRowActions={() => (
+          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+          
+            <IconButton
+              color="secondary"
+             
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+           
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        )}
+          />
         </Box>
       </Box>
 

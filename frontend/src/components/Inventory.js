@@ -2,19 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from "../api";
 import { 
   Box, 
-  Button, 
   Snackbar, 
   Alert, 
   Typography, 
-  MenuItem, 
-  Select, 
-  FormControl, 
-  InputLabel, 
-  Checkbox, 
-  ListItemText } from '@mui/material'; 
-import { useForm, Controller } from 'react-hook-form';
-import Grid from '@mui/material/Grid2';
-import MyTextField from './Forms/MyTextField';
+ } from '@mui/material'; 
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
 const Inventory = () => {
@@ -25,7 +16,7 @@ const Inventory = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
-
+  //fetch inventory data
   const getData = async () => {
     try {
       const res = await api.get('/api/inventory/');
@@ -40,10 +31,12 @@ const Inventory = () => {
     }
   };
 
+  //load data on page load
   useEffect(() => {
     getData();
   }, []);
 
+  //declare table columns
   const columns = useMemo(
     () => [
       {

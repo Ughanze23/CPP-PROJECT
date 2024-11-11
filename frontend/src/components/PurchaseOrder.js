@@ -1,12 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert, TextField } from '@mui/material';
+import { Box, Button, Snackbar, Alert, TextField,IconButton } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import MyMultiLineField from './Forms/MyMultilineField';
 import MyDatePickerField from './Forms/MyDatePickerField';
 import Typography from '@mui/material/Typography';
 import dayjs from 'dayjs';
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import { MaterialReactTable } from 'material-react-table';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+
 
 const PurchaseOrder = () => {
   const defaultValues = {
@@ -27,7 +32,7 @@ const PurchaseOrder = () => {
 
   const { handleSubmit, control, reset } = useForm({ defaultValues });
 
-  // Fetch all required data on component mount
+  // Fetch all required data on page load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -63,6 +68,7 @@ const PurchaseOrder = () => {
     return supplier ? supplier.name : 'Unknown Supplier';
   };
 
+  //declare column names
   const columns = useMemo(
     () => [
       {
@@ -107,18 +113,6 @@ const PurchaseOrder = () => {
     [products, suppliers]
   );
 
-  const table = useMaterialReactTable({
-    columns,
-    data: purchaseOrders,
-    state: { isLoading: loading },
-    enableRowSelection: false,
-    initialState: { density: 'compact' },
-    enableColumnResizing: true,
-    enableFullScreenToggle: false,
-    enableDensityToggle: false,
-    enableHiding: false,
-    muiTableBodyRowProps: { hover: true },
-  });
 
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
@@ -254,7 +248,28 @@ const PurchaseOrder = () => {
         <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
           Purchase Orders
         </Typography>
-        <MaterialReactTable table={table} />
+        <MaterialReactTable 
+         columns={columns}
+         data={purchaseOrders}
+         state={{isLoading: loading}}
+        enableRowActions
+        renderRowActions={() => (
+          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+          
+            <IconButton
+              color="secondary"
+             
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton
+           
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        )}
+        />
       </Box>
 
       <Snackbar 
