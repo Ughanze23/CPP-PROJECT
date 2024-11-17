@@ -23,6 +23,19 @@ const Products = () => {
     category_id: 0
   };
 
+  // Separate form control for edit forms
+  const editForm = useForm({
+    defaultValues: {
+      CategoryName: '',
+      CategoryDescription: '',
+      ProductName: '',
+      ProductDescription: '',
+      price: 0,
+      stock_quantity: 0,
+      category: ''
+    }
+  });
+
   // State management
   const [showForm1, setShowForm1] = useState(false);
   const [showForm2, setShowForm2] = useState(false);
@@ -39,6 +52,12 @@ const Products = () => {
   const [deleteItemId, setDeleteItemId] = useState(null);
   const [deleteType, setDeleteType] = useState(null); // 'category' or 'product'
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  // State for edit modal
+  const [editCategoryOpen, setEditCategoryOpen] = useState(false);
+  const [editProductOpen, setEditProductOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
+
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues });
 
@@ -97,7 +116,15 @@ const Products = () => {
     },
     { accessorKey: 'name', header: 'Product Name', size: 150 },
     { accessorKey: 'description', header: 'Description', size: 200 },
-    { accessorKey: 'category.name', header: 'Category', size: 150 },
+    { 
+      accessorKey: 'category.name', 
+      header: 'Category', 
+      size: 150,
+      // Add cell renderer to handle null category
+      Cell: ({ row }) => {
+        return row.original.category?.name || 'No Category';
+      }
+    },
     { accessorKey: 'price', header: 'Price', size: 100 },
     { accessorKey: 'stock_quantity', header: 'Stock Quantity', size: 100 },
   ], []);
@@ -261,6 +288,84 @@ const Products = () => {
     }
   };
 
+  // Open edit modals with pre-filled data
+  const handleEditClick = (row, type) => {
+    if (type === 'category') {
+      const category = row.original;
+      editForm.reset({
+        CategoryName: category.name,
+        CategoryDescription: category.description
+      });
+      setEditData(category);
+      setEditCategoryOpen(true);
+    } else if (type === 'product') {
+      const product = row.original;
+      editForm.reset({
+        ProductName: product.name,
+        ProductDescription: product.description,
+        // Safely handle null category
+        category: product.category?.id?.toString() || "",
+        price: product.price,
+        stock_quantity: product.stock_quantity
+      });
+      setEditData(product);
+      setEditProductOpen(true);
+    }
+  };
+
+// Close edit modals
+const handleEditModalClose = () => {
+  setEditCategoryOpen(false);
+  setEditProductOpen(false);
+  setEditData(null);
+};
+
+// PUT requests for editing
+// Modified edit submit handlers
+const handleEditCategorySubmit = async (data) => {
+  try {
+    await api.put(`/api/categories/${editData.id}/`, {
+      name: data.CategoryName,
+      description: data.CategoryDescription,
+    });
+    setSnackbarMessage("Category updated successfully!");
+    setSnackbarSeverity("success");
+    fetchCategories();
+    fetchProducts();
+  } catch (error) {
+    console.error("Failed to update category:", error);
+    setSnackbarMessage("Error updating category. Please try again.");
+    setSnackbarSeverity("error");
+  } finally {
+    setSnackbarOpen(true);
+    handleEditModalClose();
+  }
+};
+
+const handleEditProductSubmit = async (data) => {
+  try {
+    const categoryId = data.category ? parseInt(data.category) : null;
+    
+    await api.put(`/api/products/${editData.id}/`, {
+      name: data.ProductName,
+      description: data.ProductDescription,
+      category_id: categoryId, 
+      price: parseFloat(data.price),
+      stock_quantity: parseInt(data.stock_quantity),
+    });
+    setSnackbarMessage("Product updated successfully!");
+    setSnackbarSeverity("success");
+    fetchProducts();
+  } catch (error) {
+    console.error("Failed to update product:", error);
+    setSnackbarMessage("Error updating product. Please try again.");
+    setSnackbarSeverity("error");
+  } finally {
+    setSnackbarOpen(true);
+    handleEditModalClose();
+  }
+};
+
   return (
     <div>
       <Grid container spacing={2}>
@@ -379,55 +484,154 @@ const Products = () => {
             Categories
           </Typography>
           <MaterialReactTable 
-            columns={categoryColumns}
-            data={categories}
-            state={{isLoading: loading}}
-            enableRowActions
-            renderRowActions={({ row }) => (
-              <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-                <IconButton
-                  color="secondary"
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  color="error"
-                  onClick={() => handleDeleteClick(row.getValue('id'), 'category')}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            )}
-          />
+      columns={categoryColumns}
+      data={categories}
+      state={{isLoading: loading}}
+      enableRowActions
+      renderRowActions={({ row }) => (
+        <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+          <IconButton
+            color="secondary"
+            onClick={() => handleEditClick(row, 'category')}  
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDeleteClick(row.original.id, 'category')}  
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      )}
+    />
         </Box>
 
         <Box sx={{ width: '60%', pl: 2 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Products
           </Typography>
-          <MaterialReactTable 
-            columns={productColumns}
-            data={products}
-            state={{isLoading: loading}}
-            enableRowActions
-            renderRowActions={({ row }) => (
-              <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-                <IconButton
-                  color="secondary"
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  color="error"
-                  onClick={() => handleDeleteClick(row.getValue('id'), 'product')}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            )}
-          />
+           {/* Products table */}
+    <MaterialReactTable 
+      columns={productColumns}
+      data={products}
+      state={{isLoading: loading}}
+      enableRowActions
+      renderRowActions={({ row }) => (
+        <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+          <IconButton
+            color="secondary"
+            onClick={() => handleEditClick(row, 'product')} 
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDeleteClick(row.original.id, 'product')}  
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      )}
+    />
         </Box>
       </Box>
+
+    {/* Edit Category Modal */}
+    <Dialog open={editCategoryOpen} onClose={handleEditModalClose}>
+      <DialogTitle>Edit Category</DialogTitle>
+      <DialogContent>
+        <form
+          onSubmit={editForm.handleSubmit(handleEditCategorySubmit)}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}
+        >
+          <MyTextField
+            label="Category Name"
+            name="CategoryName"
+            control={editForm.control}
+            fullWidth
+          />
+          <MyMultiLineField
+            label="Description"
+            name="CategoryDescription"
+            control={editForm.control}
+            fullWidth
+          />
+          <DialogActions>
+            <Button onClick={handleEditModalClose}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    {/* Edit Product Modal */}
+    <Dialog open={editProductOpen} onClose={handleEditModalClose}>
+      <DialogTitle>Edit Product</DialogTitle>
+      <DialogContent>
+        <form
+          onSubmit={editForm.handleSubmit(handleEditProductSubmit)}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}
+        >
+          <MyTextField
+            label="Product Name"
+            name="ProductName"
+            control={editForm.control}
+            fullWidth
+          />
+          <MyMultiLineField
+            label="Product Description"
+            name="ProductDescription"
+            control={editForm.control}
+            fullWidth
+          />
+          <Controller
+            name="category"
+            control={editForm.control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                select
+                label="Category"
+                fullWidth
+                SelectProps={{
+                  native: true,
+                }}
+              >
+                <option value="">Select a Category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </TextField>
+            )}
+          />
+          <Controller
+            name="price"
+            control={editForm.control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Price"
+                type="number"
+                inputProps={{ step: '0.01' }}
+                fullWidth
+              />
+            )}
+          />
+         
+          <DialogActions>
+            <Button onClick={handleEditModalClose}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </DialogContent>
+    </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog 

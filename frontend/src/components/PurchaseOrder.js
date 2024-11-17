@@ -1,17 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert, TextField,IconButton, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import {MenuItem, Box, Button, Snackbar, Alert, TextField, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import MyMultiLineField from './Forms/MyMultilineField';
 import MyDatePickerField from './Forms/MyDatePickerField';
-import Typography from '@mui/material/Typography';
 import dayjs from 'dayjs';
 import { MaterialReactTable } from 'material-react-table';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-
 
 const PurchaseOrder = () => {
   const defaultValues = {
@@ -31,16 +29,18 @@ const PurchaseOrder = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [deletePOId, setDeletePOId] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [editStatusModalOpen, setEditStatusModalOpen] = useState(false);
+  const [currentPOId, setCurrentPOId] = useState(null);
+  const [currentStatus, setCurrentStatus] = useState('');
 
-  const { handleSubmit, control, reset } = useForm({ defaultValues });
+  const { handleSubmit, control, reset ,getValues} = useForm({ defaultValues });
 
-  // Fetch all required data on page load
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [productsResponse, suppliersResponse, purchaseOrdersResponse] = await Promise.all([
-         api.get('/api/products/'),
-         api.get('/api/suppliers/'),
+          api.get('/api/products/'),
+          api.get('/api/suppliers/'),
           api.get('/api/purchase-orders/')
         ]);
         setProducts(productsResponse.data);
@@ -58,58 +58,26 @@ const PurchaseOrder = () => {
     fetchData();
   }, []);
 
- 
-  //declare column names
-  const columns = useMemo(
-    () => [
-      {
-        accessorKey: 'id',
-        header: 'PO #',
-        size: 100,
-      },
-      {
-        accessorKey: 'product.name',
-        header: 'Product',
-        size: 200,
-      
-      },
-      {
-        accessorKey: 'supplier.name',
-        header: 'Supplier',
-        size: 200,
-      //  Cell: ({ row }) => getSupplierName(row.original.supplier_id),
-      },
-      {
-        accessorKey: 'quantity',
-        header: 'Quantity',
-        size: 120,
-      },
-      {
-        accessorKey: 'expected_delivery_date',
-        header: 'Expected Delivery',
-        size: 150,
-        Cell: ({ row }) => dayjs(row.original.expected_delivery_date).format('YYYY-MM-DD'),
-      },
-      {
-        accessorKey: 'notes',
-        header: 'Notes',
-        size: 200,
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        size: 120,
-      },
-    ],
-  //  [products, suppliers]
-  );
-
+  const columns = useMemo(() => [
+    { accessorKey: 'id', header: 'PO #', size: 100 },
+    { accessorKey: 'product.name', header: 'Product', size: 200 },
+    { accessorKey: 'supplier.name', header: 'Supplier', size: 200 },
+    { accessorKey: 'quantity', header: 'Quantity', size: 120 },
+    {
+      accessorKey: 'expected_delivery_date',
+      header: 'Expected Delivery',
+      size: 150,
+      Cell: ({ row }) => dayjs(row.original.expected_delivery_date).format('YYYY-MM-DD'),
+    },
+    { accessorKey: 'notes', header: 'Notes', size: 200 },
+    { accessorKey: 'status', header: 'Status', size: 120 },
+  ], []);
 
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
 
-  // submit form
+  // submit form for creating new purchase orders
   const onSubmit = async (data) => {
     try {
       const expDate = dayjs(data.expected_delivery_date["$d"]).format("YYYY-MM-DD");
@@ -122,10 +90,8 @@ const PurchaseOrder = () => {
         quantity: parseInt(data.quantity)
       });
 
-      // Refresh the purchase orders data
       const response = await api.get('/api/purchase-orders/');
       setPurchaseOrders(response.data);
-
       setSnackbarMessage("Purchase order created successfully!");
       setSnackbarSeverity("success");
       reset();
@@ -138,18 +104,15 @@ const PurchaseOrder = () => {
     }
   };
 
-  //handle #PO deletion
   const handleDelete = async () => {
     if (!deletePOId) {
       console.error('No #PO ID to delete');
       return;
     }
-
     try {
-      await api.delete(`/api/suppliers/${deletePOId}/`);
+      await api.delete(`/api/purchase-orders/${deletePOId}/`);
       setSnackbarMessage('#PO deleted successfully!');
       setSnackbarSeverity('success');
-      // Refresh the purchase orders data
       const response = await api.get('/api/purchase-orders/');
       setPurchaseOrders(response.data);
     } catch (error) {
@@ -163,13 +126,60 @@ const PurchaseOrder = () => {
     }
   };
 
+  const handleEditStatusClick = (id, currentStatus) => {
+    setCurrentPOId(id);
+    setCurrentStatus(currentStatus);
+    setEditStatusModalOpen(true);
+  };
+
+  const handleStatusUpdate = async () => {
+    try {
+      // Retrieve the new_status value from the form
+      const { new_status } = getValues();
+  
+      if (!new_status) {
+        throw new Error("New status is not selected");
+      }
+  
+      // Fetch the full details of the current purchase order
+      const currentPO = purchaseOrders.find((po) => po.id === currentPOId);
+      if (!currentPO) {
+        throw new Error("Purchase order not found");
+      }
+  
+      
+      const updatedPO = {
+        product_id: currentPO.product.id,
+        supplier_id: currentPO.supplier.id, 
+        quantity: currentPO.quantity,
+        status: new_status, 
+      };
+  
+      // Send the PUT request
+      await api.put(`/api/purchase-orders/${currentPOId}/`, updatedPO);
+  
+      // Fetch the updated purchase orders
+      const response = await api.get('/api/purchase-orders/');
+      setPurchaseOrders(response.data);
+  
+      setSnackbarMessage("Status updated successfully!");
+      setSnackbarSeverity("success");
+      setEditStatusModalOpen(false);
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      setSnackbarMessage("Error updating status. Please try again.");
+      setSnackbarSeverity("error");
+    } finally {
+      setSnackbarOpen(true);
+    }
+  };
+  
+  
   return (
     <div>
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '70%', marginBottom: '10px' }}>
-          <Typography variant="h6" sx={{ marginLeft: '20px' }}>
-            Create Purchase Order
-          </Typography>
+          <Typography variant="h6" sx={{ marginLeft: '20px' }}>Create Purchase Order</Typography>
         </Box>
 
         <Box sx={{ display: 'flex', width: '70%', boxShadow: 3, padding: 3, flexDirection: 'column', gap: 3, mb: 4 }}>
@@ -178,41 +188,22 @@ const PurchaseOrder = () => {
               name="product"
               control={control}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  select
-                  fullWidth
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
+                <TextField {...field} select fullWidth SelectProps={{ native: true }}>
                   <option value="">Select a Product</option>
                   {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
+                    <option key={product.id} value={product.id}>{product.name}</option>
                   ))}
                 </TextField>
               )}
             />
-
             <Controller
               name="supplier"
               control={control}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  select
-                  fullWidth
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
+                <TextField {...field} select fullWidth SelectProps={{ native: true }}>
                   <option value="">Select a Supplier</option>
                   {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
+                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                   ))}
                 </TextField>
               )}
@@ -220,108 +211,95 @@ const PurchaseOrder = () => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <MyDatePickerField
-              label="Expected Delivery Date"
-              name="expected_delivery_date"
-              control={control}
-              fullWidth
-            />
-            
+            <MyDatePickerField label="Expected Delivery Date" name="expected_delivery_date" control={control} fullWidth />
             <Box sx={{ width: '50%' }}>
               <Controller
                 name="quantity"
                 control={control}
                 render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Quantity"
-                    type="number"
-                    inputProps={{ min: 0 }}
-                    fullWidth
-                  />
+                  <TextField {...field} label="Quantity" type="number" inputProps={{ min: 0 }} fullWidth />
                 )}
               />
             </Box>
           </Box>
 
-          <MyMultiLineField
-            label="Notes"
-            name="notes"
-            control={control}
-            placeholder="Note to Supplier"
-            fullWidth
-          />
+          <MyMultiLineField label="Notes" name="notes" control={control} placeholder="Note to Supplier" fullWidth />
 
           <Box sx={{ display: 'flex', justifyContent: 'start' }}>
-            <Button variant="contained" type="submit" sx={{ width: '120px' }}>
-              Submit
-            </Button>
+            <Button variant="contained" type="submit" sx={{ width: '120px' }}>Submit</Button>
           </Box>
         </Box>
       </form>
 
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
-          Purchase Orders
-        </Typography>
-        <MaterialReactTable 
-         columns={columns}
-         data={purchaseOrders}
-         state={{isLoading: loading}}
-        enableRowActions
-        renderRowActions={({ row }) => (
-          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-          
-            <IconButton
-              color="secondary"
-             
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-            color="error"
-            onClick={() => {
-             const poId = row.getValue('id')
-              if (poId) {
-                setDeletePOId(poId);
-                setConfirmDeleteOpen(true);
-              } else {
-                console.error('No #PO ID found');
-                setSnackbarMessage('Error: Could not identify #PO');
-                setSnackbarSeverity('error');
-                setSnackbarOpen(true);
-              }
-            }}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
+        <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>Purchase Orders</Typography>
+        <MaterialReactTable
+          columns={columns}
+          data={purchaseOrders}
+          state={{ isLoading: loading }}
+          enableRowActions
+          renderRowActions={({ row }) => (
+            <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+              <IconButton
+                color="secondary"
+                onClick={() => handleEditStatusClick(row.original.id, row.original.status)}
+              >
+                <EditIcon />
+              </IconButton>
+              <IconButton
+                color="error"
+                onClick={() => {
+                  setDeletePOId(row.original.id);
+                  setConfirmDeleteOpen(true);
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          )}
         />
       </Box>
 
+      {/* Status Edit Modal */}
+      <Dialog open={editStatusModalOpen} onClose={() => setEditStatusModalOpen(false)}>
+        <DialogTitle>Edit Purchase Order Status</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Controller
+            name="new_status"
+            control={control}
+            defaultValue={currentStatus}
+            render={({ field }) => (
+            <TextField
+              {...field}
+              select
+              fullWidth
+              label="Status"
+              >
+      <MenuItem value="PENDING">PENDING</MenuItem>
+      <MenuItem value="RECEIVED">RECEIVED</MenuItem>
+      <MenuItem value="CANCELED">CANCELED</MenuItem>
+    </TextField>
+  )}
+/>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>Are you sure you want to delete this #PO ?</DialogContent>
+          </Box>
+        </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
-          <Button color="error" onClick={handleDelete}>Delete</Button>
+          <Button onClick={() => setEditStatusModalOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleStatusUpdate}
+            color="primary"
+          >
+            Save Changes
+          </Button>
         </DialogActions>
       </Dialog>
-   
 
-
-      <Snackbar 
-        open={snackbarOpen} 
-        autoHideDuration={5000} 
-        onClose={handleCloseSnackbar} 
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
-          {snackbarMessage}
-        </Alert>
+      {/* Snackbar for alerts */}
+      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}
+       anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert severity={snackbarSeverity} onClose={handleCloseSnackbar}>{snackbarMessage}</Alert>
       </Snackbar>
     </div>
   );

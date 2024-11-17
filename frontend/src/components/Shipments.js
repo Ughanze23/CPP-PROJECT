@@ -31,6 +31,7 @@ const Shipments = () => {
   };
 
   const [showForm1, setShowForm1] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false); // Track if edit form is open
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
@@ -38,6 +39,7 @@ const Shipments = () => {
   const [loading, setLoading] = useState(true);
   const [deleteShippingPartnerId, setDeleteShippingPartnerId] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedShipment, setSelectedShipment] = useState(null); // Store selected shipment for editing
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues: defaultValues });
 
@@ -56,12 +58,11 @@ const Shipments = () => {
     }
   };
 
-  //load data on pageload
   useEffect(() => {
     fetchShippingPartners();
   }, []);
 
-  //declare column names
+  // Declare column names
   const columns = useMemo(
     () => [
       {
@@ -117,8 +118,6 @@ const Shipments = () => {
     []
   );
 
-  
-  //show or hide form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
@@ -130,8 +129,7 @@ const Shipments = () => {
 
   const deliveryZones = Array.from({ length: 24 }, (_, i) => i + 1);
 
-
-  //submit form
+  // Submit form for adding a new shipment
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/shipping/", {
@@ -144,26 +142,39 @@ const Shipments = () => {
       setSnackbarSeverity("success");
       reset();
       handleForm1();
-      // Refresh the table data
       fetchShippingPartners();
     } catch (error) {
       console.error("Failed to create Delivery Partner:", error);
-      if (error.response && error.response.data) {
-        const errorMsg = 
-          error.response.data.detail || 
-          error.response.data.name?.[0] || 
-          "Error creating Delivery Partner. Please try again.";
-        setSnackbarMessage(errorMsg);
-      } else {
-        setSnackbarMessage("Error creating Delivery Partner. Please try again.");
-      }
+      setSnackbarMessage("Error creating Delivery Partner. Please try again.");
       setSnackbarSeverity("error");
-    } finally {
       setSnackbarOpen(true);
     }
   };
 
-  //handle shipping partner deletion
+  // Submit form for editing an existing shipment
+  const onSubmitEdit = async (data) => {
+    try {
+      await api.put(`/api/shipping/${selectedShipment.id}/`, {
+        logistics_company: data.logistics_company,
+        contact_person: data.contact_person,
+        email: data.email,
+        delivery_zone: data.delivery_zone,
+        status: data.status
+      });
+      setSnackbarMessage("Delivery Partner updated successfully!");
+      setSnackbarSeverity("success");
+      setShowEditForm(false);
+      reset();
+      fetchShippingPartners();
+    } catch (error) {
+      console.error("Failed to update Delivery Partner:", error);
+      setSnackbarMessage("Error updating Delivery Partner. Please try again.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Handle delete confirmation
   const handleDelete = async () => {
     if (!deleteShippingPartnerId) {
       console.error('No shipping partner ID to delete');
@@ -185,7 +196,6 @@ const Shipments = () => {
       setDeleteShippingPartnerId(null);
     }
   };
-
 
   return (
     <div>
@@ -259,56 +269,111 @@ const Shipments = () => {
           columns={columns}
           data={shippingPartners}
           state={{ isLoading: loading }}
-        enableRowActions
-        renderRowActions={({ row }) => (
-          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-          
-            <IconButton
+          enableRowActions
+          renderRowActions={({ row }) => (
+            <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+              <IconButton
               color="secondary"
-             
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-             color="error"
-             onClick={() => {
-              const shipmentId = row.getValue('id')
-               if (shipmentId) {
-                setDeleteShippingPartnerId(shipmentId);
-                 setConfirmDeleteOpen(true);
-               } else {
-                 console.error('No shipping partner ID found');
-                 setSnackbarMessage('Error: Could not identify shippng partner');
-                 setSnackbarSeverity('error');
-                 setSnackbarOpen(true);
-               }
-             }}
-           
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
+                onClick={() => {
+                  setSelectedShipment(row.original); // Set the selected shipment for editing
+                  setShowEditForm(true); // Open the edit form
+                  setValue('logistics_company', row.original.logistics_company);
+                  setValue('contact_person', row.original.contact_person);
+                  setValue('email', row.original.email);
+                  setValue('delivery_zone', row.original.delivery_zone);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+              <IconButton
+              color="error"
+                onClick={() => {
+                  setDeleteShippingPartnerId(row.original.id);
+                  setConfirmDeleteOpen(true);
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          )}
         />
       </Box>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>Are you sure you want to delete this Shipping Partner?</DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
-          <Button color="error" onClick={handleDelete}>Delete</Button>
-        </DialogActions>
+      {/* Edit Shipping Partner Modal */}
+      <Dialog open={showEditForm} onClose={() => setShowEditForm(false)}>
+        <DialogTitle>Edit Delivery Partner</DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleSubmit(onSubmitEdit)}>
+            <MyTextField
+              label="Delivery Partner"
+              name="logistics_company"
+              control={control}
+              placeholder="Enter Delivery Company Name"
+              fullWidth
+            />
+            <MyTextField
+              label="Contact Person"
+              name="contact_person"
+              control={control}
+              placeholder="Enter Contact Person Name"
+              fullWidth
+            />
+            <MyTextField
+              label="Email"
+              name="email"
+              control={control}
+              placeholder="Enter Email(Business email)"
+              type="email"
+              fullWidth
+            />
+            <InputLabel>Status</InputLabel>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <Select {...field}>
+                        <MenuItem value="ACTIVE">Active</MenuItem>
+                        <MenuItem value="INACTIVE">Inactive</MenuItem>
+                      </Select>
+                    )}
+                  />
+            <FormControl fullWidth>
+              <InputLabel>Delivery Zones</InputLabel>
+              <Controller
+                name="delivery_zone"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    multiple
+                    renderValue={(selected) => selected.join(", ")}
+                  >
+                    {deliveryZones.map((zone) => (
+                      <MenuItem key={zone} value={zone}>
+                        <Checkbox checked={field.value.includes(zone)} />
+                        <ListItemText primary={`Dublin ${zone}`} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                )}
+              />
+            </FormControl>
+
+            <DialogActions>
+              <Button onClick={() => setShowEditForm(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </DialogActions>
+          </form>
+        </DialogContent>
       </Dialog>
 
-      <Snackbar 
-        open={snackbarOpen} 
-        autoHideDuration={5000} 
-        onClose={handleCloseSnackbar} 
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert severity={snackbarSeverity} onClose={handleCloseSnackbar}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

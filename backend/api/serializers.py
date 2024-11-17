@@ -24,8 +24,11 @@ class ProductCategorySerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        """Check that the category name is unique."""
-        if ProductCategory.objects.filter(name=value).exists():
+        """Check that the category name is unique, except when updating the same record."""
+        category = self.instance  # This refers to the current instance being updated
+
+        # If the name is being updated and is already taken by another category, raise an error
+        if category and category.name != value and ProductCategory.objects.filter(name=value).exists():
             raise ValidationError("A category with this name already exists.")
         return value
 
@@ -33,6 +36,7 @@ class ProductCategorySerializer(serializers.ModelSerializer):
         """Create a Product Category"""
         validated_data["created_by"] = self.context['request'].user
         return super().create(validated_data)
+
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -50,8 +54,11 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        """Check that the product name is unique."""
-        if Product.objects.filter(name=value).exists():
+        """Check that the product name is unique, except when updating the same record."""
+        product = self.instance  # This refers to the current instance being updated
+
+        # If the name is being updated and is already taken by another product, raise an error
+        if product and product.name != value and Product.objects.filter(name=value).exists():
             raise ValidationError("A product with this name already exists.")
         return value
 
@@ -59,6 +66,7 @@ class ProductSerializer(serializers.ModelSerializer):
         """Create a Product"""
         validated_data["created_by"] = self.context['request'].user
         return super().create(validated_data)
+
 
 
 class InventorySerializer(serializers.ModelSerializer):
@@ -92,20 +100,29 @@ class SupplierSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        """Check that the supplier name is unique."""
-        if Supplier.objects.filter(name=value).exists():
+        """Check that the supplier name is unique, except when updating the same record."""
+        supplier = self.instance  # This refers to the current instance being updated
+
+        # If the name is being updated and is already taken by another supplier, raise an error
+        if supplier and supplier.name != value and Supplier.objects.filter(name=value).exists():
             raise ValidationError("A supplier with this name already exists.")
         return value
 
     def validate_contact_email(self, value):
-        """Check that the supplier email is unique."""
-        if Supplier.objects.filter(contact_email=value).exists():
+        """Check that the supplier email is unique, except when updating the same record."""
+        supplier = self.instance  # This refers to the current instance being updated
+
+        # If the email is being updated and is already taken by another supplier, raise an error
+        if supplier and supplier.contact_email != value and Supplier.objects.filter(contact_email=value).exists():
             raise ValidationError("A supplier with this email already exists.")
         return value
 
     def validate_contact_phone(self, value):
-        """Check that the supplier phone number is unique."""
-        if Supplier.objects.filter(contact_phone=value).exists():
+        """Check that the supplier phone number is unique, except when updating the same record."""
+        supplier = self.instance  # This refers to the current instance being updated
+
+        # If the phone number is being updated and is already taken by another supplier, raise an error
+        if supplier and supplier.contact_phone != value and Supplier.objects.filter(contact_phone=value).exists():
             raise ValidationError("A supplier with this phone number already exists.")
         return value
 
@@ -113,6 +130,7 @@ class SupplierSerializer(serializers.ModelSerializer):
         """Create a new Supplier"""
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
 
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
@@ -185,15 +203,21 @@ class ShipmentSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_logistics_company(self, value):
-        """Check that the logistics company name is unique."""
-        if Shipment.objects.filter(logistics_company=value).exists():
-            raise ValidationError("logistics company with this name already exists.")
+        """Check that the logistics company name is unique, except when updating the same record."""
+        shipment = self.instance  # This refers to the current instance being updated
+
+        # If the logistics company name is being updated and is already taken by another shipment, raise an error
+        if shipment and shipment.logistics_company != value and Shipment.objects.filter(logistics_company=value).exists():
+            raise ValidationError("A logistics company with this name already exists.")
         return value
 
     def validate_email(self, value):
-        """Check that the email is unique."""
-        if Shipment.objects.filter(email=value).exists():
-            raise ValidationError("logistics company with this email already exists.")
+        """Check that the email is unique, except when updating the same record."""
+        shipment = self.instance  # This refers to the current instance being updated
+
+        # If the email is being updated and is already taken by another shipment, raise an error
+        if shipment and shipment.email != value and Shipment.objects.filter(email=value).exists():
+            raise ValidationError("A shipment with this email already exists.")
         return value
 
     def create(self, validated_data):
