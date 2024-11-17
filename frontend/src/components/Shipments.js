@@ -11,7 +11,7 @@ import {
   FormControl, 
   InputLabel, 
   Checkbox, IconButton,
-  ListItemText } from '@mui/material'; 
+  ListItemText, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material'; 
 import { useForm, Controller } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
@@ -36,6 +36,8 @@ const Shipments = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [shippingPartners, setShippingPartners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteShippingPartnerId, setDeleteShippingPartnerId] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues: defaultValues });
 
@@ -62,6 +64,12 @@ const Shipments = () => {
   //declare column names
   const columns = useMemo(
     () => [
+      {
+        accessorKey: 'id', 
+        header: 'ID',
+        size: 100,
+        enableHiding: true, 
+      },
       {
         accessorKey: 'logistics_company',
         header: 'Delivery Partner',
@@ -155,6 +163,30 @@ const Shipments = () => {
     }
   };
 
+  //handle shipping partner deletion
+  const handleDelete = async () => {
+    if (!deleteShippingPartnerId) {
+      console.error('No shipping partner ID to delete');
+      return;
+    }
+
+    try {
+      await api.delete(`/api/shipping/${deleteShippingPartnerId}/`);
+      setSnackbarMessage('Shipping partner deleted successfully!');
+      setSnackbarSeverity('success');
+      fetchShippingPartners();
+    } catch (error) {
+      console.error('Failed to delete shipping partner:', error);
+      setSnackbarMessage('Error deleting shipping partner');
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      setConfirmDeleteOpen(false);
+      setDeleteShippingPartnerId(null);
+    }
+  };
+
+
   return (
     <div>
       <Grid container spacing={2}>
@@ -228,7 +260,7 @@ const Shipments = () => {
           data={shippingPartners}
           state={{ isLoading: loading }}
         enableRowActions
-        renderRowActions={() => (
+        renderRowActions={({ row }) => (
           <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
           
             <IconButton
@@ -238,6 +270,19 @@ const Shipments = () => {
               <EditIcon />
             </IconButton>
             <IconButton
+             color="error"
+             onClick={() => {
+              const shipmentId = row.getValue('id')
+               if (shipmentId) {
+                setDeleteShippingPartnerId(shipmentId);
+                 setConfirmDeleteOpen(true);
+               } else {
+                 console.error('No shipping partner ID found');
+                 setSnackbarMessage('Error: Could not identify shippng partner');
+                 setSnackbarSeverity('error');
+                 setSnackbarOpen(true);
+               }
+             }}
            
             >
               <DeleteIcon />
@@ -246,6 +291,16 @@ const Shipments = () => {
         )}
         />
       </Box>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>Are you sure you want to delete this Shipping Partner?</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar 
         open={snackbarOpen} 

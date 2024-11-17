@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert, TextField,IconButton } from '@mui/material';
+import { Box, Button, Snackbar, Alert, TextField,IconButton, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import MyMultiLineField from './Forms/MyMultilineField';
 import MyDatePickerField from './Forms/MyDatePickerField';
@@ -29,6 +29,8 @@ const PurchaseOrder = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [deletePOId, setDeletePOId] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const { handleSubmit, control, reset } = useForm({ defaultValues });
 
@@ -37,8 +39,8 @@ const PurchaseOrder = () => {
     const fetchData = async () => {
       try {
         const [productsResponse, suppliersResponse, purchaseOrdersResponse] = await Promise.all([
-          api.get('/api/products/'),
-          api.get('/api/suppliers/'),
+         api.get('/api/products/'),
+         api.get('/api/suppliers/'),
           api.get('/api/purchase-orders/')
         ]);
         setProducts(productsResponse.data);
@@ -56,18 +58,7 @@ const PurchaseOrder = () => {
     fetchData();
   }, []);
 
-  // Helper function to get product name by ID
-  const getProductName = (productId) => {
-    const product = products.find(p => p.id === productId);
-    return product ? product.name : 'Unknown Product';
-  };
-
-  // Helper function to get supplier name by ID
-  const getSupplierName = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier ? supplier.name : 'Unknown Supplier';
-  };
-
+ 
   //declare column names
   const columns = useMemo(
     () => [
@@ -77,16 +68,16 @@ const PurchaseOrder = () => {
         size: 100,
       },
       {
-        accessorKey: 'product_id',
+        accessorKey: 'product.name',
         header: 'Product',
         size: 200,
-        Cell: ({ row }) => getProductName(row.original.product_id),
+      
       },
       {
-        accessorKey: 'supplier_id',
+        accessorKey: 'supplier.name',
         header: 'Supplier',
         size: 200,
-        Cell: ({ row }) => getSupplierName(row.original.supplier_id),
+      //  Cell: ({ row }) => getSupplierName(row.original.supplier_id),
       },
       {
         accessorKey: 'quantity',
@@ -97,7 +88,7 @@ const PurchaseOrder = () => {
         accessorKey: 'expected_delivery_date',
         header: 'Expected Delivery',
         size: 150,
-        Cell: ({ row }) => dayjs(row.original.expected_delivery_date).format('DD/MM/YYYY'),
+        Cell: ({ row }) => dayjs(row.original.expected_delivery_date).format('YYYY-MM-DD'),
       },
       {
         accessorKey: 'notes',
@@ -110,7 +101,7 @@ const PurchaseOrder = () => {
         size: 120,
       },
     ],
-    [products, suppliers]
+  //  [products, suppliers]
   );
 
 
@@ -144,6 +135,31 @@ const PurchaseOrder = () => {
       setSnackbarSeverity("error");
     } finally {
       setSnackbarOpen(true);
+    }
+  };
+
+  //handle #PO deletion
+  const handleDelete = async () => {
+    if (!deletePOId) {
+      console.error('No #PO ID to delete');
+      return;
+    }
+
+    try {
+      await api.delete(`/api/suppliers/${deletePOId}/`);
+      setSnackbarMessage('#PO deleted successfully!');
+      setSnackbarSeverity('success');
+      // Refresh the purchase orders data
+      const response = await api.get('/api/purchase-orders/');
+      setPurchaseOrders(response.data);
+    } catch (error) {
+      console.error('Failed to delete #PO:', error);
+      setSnackbarMessage('Error deleting #PO');
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      setConfirmDeleteOpen(false);
+      setDeletePOId(null);
     }
   };
 
@@ -253,7 +269,7 @@ const PurchaseOrder = () => {
          data={purchaseOrders}
          state={{isLoading: loading}}
         enableRowActions
-        renderRowActions={() => (
+        renderRowActions={({ row }) => (
           <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
           
             <IconButton
@@ -263,7 +279,19 @@ const PurchaseOrder = () => {
               <EditIcon />
             </IconButton>
             <IconButton
-           
+            color="error"
+            onClick={() => {
+             const poId = row.getValue('id')
+              if (poId) {
+                setDeletePOId(poId);
+                setConfirmDeleteOpen(true);
+              } else {
+                console.error('No #PO ID found');
+                setSnackbarMessage('Error: Could not identify #PO');
+                setSnackbarSeverity('error');
+                setSnackbarOpen(true);
+              }
+            }}
             >
               <DeleteIcon />
             </IconButton>
@@ -271,6 +299,19 @@ const PurchaseOrder = () => {
         )}
         />
       </Box>
+
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>Are you sure you want to delete this #PO ?</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+   
+
 
       <Snackbar 
         open={snackbarOpen} 

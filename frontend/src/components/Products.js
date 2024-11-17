@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert, TextField, CircularProgress,IconButton } from '@mui/material'; 
+import { Box, Button, Snackbar, Alert, TextField, CircularProgress, IconButton, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material'; 
 import { useForm, Controller } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
@@ -12,8 +12,6 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 
-
-//set default state for forms
 const Products = () => {
   const defaultValues = {
     CategoryName: '',
@@ -25,7 +23,7 @@ const Products = () => {
     category_id: 0
   };
 
-  //declare constants
+  // State management
   const [showForm1, setShowForm1] = useState(false);
   const [showForm2, setShowForm2] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -36,10 +34,14 @@ const Products = () => {
   const [Base64image, setBase64Image] = useState("");
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // New state for delete functionality
+  const [deleteItemId, setDeleteItemId] = useState(null);
+  const [deleteType, setDeleteType] = useState(null); // 'category' or 'product'
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues });
 
-  //get categories data
   const fetchCategories = async () => {
     try {
       const response = await api.get('/api/categories/');
@@ -55,7 +57,6 @@ const Products = () => {
     }
   };
 
-  //get products data
   const fetchProducts = async () => {
     try {
       const response = await api.get('/api/products/');
@@ -71,29 +72,36 @@ const Products = () => {
     }
   };
 
-  //getdata on page load
   useEffect(() => {
-   
     fetchCategories();
     fetchProducts();
   }, []);
 
-  //delcare column data for category table
   const categoryColumns = useMemo(() => [
+    {
+      accessorKey: 'id', 
+      header: 'ID',
+      size: 100,
+      enableHiding: true, 
+    },
     { accessorKey: 'name', header: 'Category Name', size: 150 },
     { accessorKey: 'description', header: 'Description', size: 200 },
   ], []);
 
-  //declare column data for products table
   const productColumns = useMemo(() => [
+    {
+      accessorKey: 'id', 
+      header: 'ID',
+      size: 100,
+      enableHiding: true, 
+    },
     { accessorKey: 'name', header: 'Product Name', size: 150 },
     { accessorKey: 'description', header: 'Description', size: 200 },
+    { accessorKey: 'category.name', header: 'Category', size: 150 },
     { accessorKey: 'price', header: 'Price', size: 100 },
     { accessorKey: 'stock_quantity', header: 'Stock Quantity', size: 100 },
-    { accessorKey: 'category_name', header: 'Category', size: 150 },
   ], []);
 
-  //handle image upload - convert image to base64String
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -108,7 +116,6 @@ const Products = () => {
     }
   };
 
-  //upload image to s3
   const handleImageUpload = async (data) => {
     try {
       const response = await fetch("https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/", {
@@ -141,24 +148,57 @@ const Products = () => {
     }
   };
 
-  //show or hide form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
   };
 
-  //show or hide form
   const handleForm2 = () => {
     setShowForm2(!showForm2);
     reset();
   };
 
-  //handle notifications
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
 
-  //submit category form
+  // New delete handlers
+  const handleDeleteClick = (id, type) => {
+    setDeleteItemId(id);
+    setDeleteType(type);
+    setConfirmDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItemId || !deleteType) {
+      console.error('No item selected for deletion');
+      return;
+    }
+
+    try {
+      if (deleteType === 'category') {
+        await api.delete(`/api/categories/${deleteItemId}/`);
+        setSnackbarMessage('Category deleted successfully!');
+        fetchCategories();
+        fetchProducts();
+      } else if (deleteType === 'product') {
+        await api.delete(`/api/products/${deleteItemId}/`);
+        setSnackbarMessage('Product deleted successfully!');
+        fetchProducts();
+      }
+      setSnackbarSeverity('success');
+    } catch (error) {
+      console.error(`Failed to delete ${deleteType}:`, error);
+      setSnackbarMessage(`Error deleting ${deleteType}. ${error.response?.data?.detail || 'Please try again.'}`);
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      setConfirmDeleteOpen(false);
+      setDeleteItemId(null);
+      setDeleteType(null);
+    }
+  };
+
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/categories/", {
@@ -180,7 +220,6 @@ const Products = () => {
     }
   };
 
-  //submit products form
   const onSubmit2 = async (data) => {
     if (!Base64image) {
       setSnackbarMessage("Please upload a Product image first");
@@ -275,7 +314,6 @@ const Products = () => {
                   placeholder="Enter Product Description"
                   fullWidth
                 />
-                
                 <Controller
                   name="category"
                   control={control}
@@ -297,7 +335,6 @@ const Products = () => {
                     </TextField>
                   )}
                 />
-                
                 <Controller
                   name="price"
                   control={control}
@@ -311,7 +348,6 @@ const Products = () => {
                     />
                   )}
                 />
-                
                 <Controller
                   name="stock_quantity"
                   control={control}
@@ -343,26 +379,25 @@ const Products = () => {
             Categories
           </Typography>
           <MaterialReactTable 
-          columns={categoryColumns}
-          data={categories}
-          state={{isLoading: loading}}
-          enableRowActions
-        renderRowActions={() => (
-          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-          
-            <IconButton
-              color="secondary"
-             
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-           
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
+            columns={categoryColumns}
+            data={categories}
+            state={{isLoading: loading}}
+            enableRowActions
+            renderRowActions={({ row }) => (
+              <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+                <IconButton
+                  color="secondary"
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  color="error"
+                  onClick={() => handleDeleteClick(row.getValue('id'), 'category')}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            )}
           />
         </Box>
 
@@ -371,32 +406,55 @@ const Products = () => {
             Products
           </Typography>
           <MaterialReactTable 
-          columns={productColumns}
-          data={products}
-          state={{isLoading: loading}}
-          enableRowActions
-        renderRowActions={() => (
-          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-          
-            <IconButton
-              color="secondary"
-             
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-           
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
+            columns={productColumns}
+            data={products}
+            state={{isLoading: loading}}
+            enableRowActions
+            renderRowActions={({ row }) => (
+              <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+                <IconButton
+                  color="secondary"
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  color="error"
+                  onClick={() => handleDeleteClick(row.getValue('id'), 'product')}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            )}
           />
         </Box>
       </Box>
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog 
+        open={confirmDeleteOpen} 
+        onClose={() => setConfirmDeleteOpen(false)}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this {deleteType}?
+          {deleteType === 'category' && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              Warning: Deleting a category will affect all associated products.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
 
-      <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={5000} 
+        onClose={handleCloseSnackbar} 
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
         <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>

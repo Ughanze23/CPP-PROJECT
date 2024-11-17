@@ -106,7 +106,6 @@ class PurchaseOrder(models.Model):
     """Purchase Order Table"""
     STATUS_CHOICES = [
         ("PENDING", "Pending"),
-        ("ORDERED", "Ordered"),
         ("RECEIVED", "Received"),
         ("CANCELED", "Canceled")
     ]

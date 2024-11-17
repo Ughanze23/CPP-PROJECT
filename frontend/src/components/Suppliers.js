@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from "../api";
-import { Box, Button, Snackbar, Alert } from '@mui/material';
+import { Box, Button, Snackbar, Alert, Dialog, DialogActions, DialogContent, DialogTitle} from '@mui/material';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import MyTextField from './Forms/MyTextField';
@@ -13,7 +13,6 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 
-//set default form state
 const Suppliers = () => {
   const defaultValues = {
     name: '',
@@ -22,15 +21,15 @@ const Suppliers = () => {
     address: ''
   };
 
-  //declare constants
   const [suppliers, setSuppliers] = useState([]);  
   const [loading, setLoading] = useState(true);
   const [showForm1, setShowForm1] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [deleteSupplierId, setDeleteSupplierId] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  //get suppliers data
   const getData = async () => {
     try {
       const res = await api.get('/api/suppliers/');
@@ -45,14 +44,18 @@ const Suppliers = () => {
     }
   };
 
-  //load data on page load
   useEffect(() => {
     getData();
   }, []);
 
-  //declare table columns
   const columns = useMemo(
     () => [
+      {
+        accessorKey: 'id', 
+        header: 'ID',
+        size: 100,
+        enableHiding: true, 
+      },
       {
         accessorKey: 'name',  
         header: 'Name',
@@ -77,10 +80,8 @@ const Suppliers = () => {
     []
   );
 
-
   const { handleSubmit, control, reset } = useForm({ defaultValues });
 
-  //hide or show form
   const handleForm1 = () => {
     setShowForm1(!showForm1);
     reset();
@@ -90,7 +91,6 @@ const Suppliers = () => {
     setSnackbarOpen(false);
   };
 
-  //handle form submission
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/suppliers/", {
@@ -111,6 +111,29 @@ const Suppliers = () => {
       setSnackbarSeverity("error");
     } finally {
       setSnackbarOpen(true);
+    }
+  };
+
+  //handle supplier deletion
+  const handleDelete = async () => {
+    if (!deleteSupplierId) {
+      console.error('No supplier ID to delete');
+      return;
+    }
+
+    try {
+      await api.delete(`/api/suppliers/${deleteSupplierId}/`);
+      setSnackbarMessage('Supplier deleted successfully!');
+      setSnackbarSeverity('success');
+      getData();
+    } catch (error) {
+      console.error('Failed to delete supplier:', error);
+      setSnackbarMessage('Error deleting supplier');
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      setConfirmDeleteOpen(false);
+      setDeleteSupplierId(null);
     }
   };
 
@@ -171,32 +194,50 @@ const Suppliers = () => {
           Suppliers
         </Typography>
         <MaterialReactTable 
-        columns={columns}
-        data={suppliers}
-        state={{isLoading: loading}}
-        enableRowActions
-        renderRowActions={(row) => ( 
-          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
-            <IconButton
-              color="secondary"
-              onClick={() => {
-                // Handle delete action for the current row
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-              color="error"
-              onClick={() => {
-                // Handle delete action for the current row
-              }}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
+          columns={columns}
+          data={suppliers}
+          state={{isLoading: loading}}
+          enableRowActions
+          renderRowActions={({ row }) => (  
+            <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: '8px' }}>
+              <IconButton
+                color="secondary"
+                onClick={() => {
+                  // Handle edit action for the current row
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+              <IconButton
+                color="error"
+                onClick={() => {
+                  const supplierId = row.getValue('id');  
+                  if (supplierId) {
+                    setDeleteSupplierId(supplierId);
+                    setConfirmDeleteOpen(true);
+                  } else {
+                    console.error('No supplier ID found for row:', row);
+                    setSnackbarMessage('Error: Could not identify supplier');
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                  }
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          )}
         />
       </Box>
+
+      <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>Are you sure you want to delete this supplier?</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar 
         open={snackbarOpen} 
