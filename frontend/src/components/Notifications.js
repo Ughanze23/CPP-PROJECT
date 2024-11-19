@@ -10,14 +10,13 @@ import {
  } from '@mui/material'; 
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 
 
 const Notifications = () => {
 
-  const { handleSubmit, control, reset ,getValues} = useForm({  });
+  const {  control ,getValues} = useForm({  });
 
   const [notifications, setNotification] = useState([]);  
   const [loading, setLoading] = useState(true);
