@@ -166,3 +166,4 @@ class Shipment(models.Model):
 
     def __str__(self):
         return f"{self.logistics_company} - {self.contact_person} ({self.status})"
+

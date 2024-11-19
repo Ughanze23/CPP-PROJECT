@@ -129,6 +129,7 @@ const Products = () => {
     { accessorKey: 'stock_quantity', header: 'Stock Quantity', size: 100 },
   ], []);
 
+  //get image base64String.
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -145,13 +146,22 @@ const Products = () => {
 
   const handleImageUpload = async (data) => {
     try {
+
+       // Find the category name corresponding to the selected category ID
+       const selectedCategory = categories.find(
+        (category) => String(category.id) === String(data.category)
+      );
+  
+
       const response = await fetch("https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           "image": Base64image, 
-          "category": data.category,
-          "name": data.ProductName
+          "category": selectedCategory.name,
+          "name": data.ProductName,
+          "option": "product",
+          "httpMethod" : "POST"
         }),
       });
 
@@ -189,60 +199,144 @@ const Products = () => {
     setSnackbarOpen(false);
   };
 
-  // New delete handlers
-  const handleDeleteClick = (id, type) => {
-    setDeleteItemId(id);
-    setDeleteType(type);
-    setConfirmDeleteOpen(true);
-  };
+  // delete operation handlers
+  // Function to initialize the delete confirmation dialog
+// Function to initialize the delete confirmation dialog
+const handleDeleteClick = (id, type) => {
+  setDeleteItemId(id); // Store the ID of the item to be deleted
+  setDeleteType(type); // Store the type ('category' or 'product')
+  setConfirmDeleteOpen(true); // Open the confirmation dialog
+};
 
-  const handleDelete = async () => {
-    if (!deleteItemId || !deleteType) {
-      console.error('No item selected for deletion');
-      return;
+// Function to handle the delete process after confirmation
+const handleDelete = async () => {
+  if (!deleteItemId || !deleteType) {
+    console.error("No item selected for deletion");
+    return;
+  }
+
+  try {
+    let name = "";
+    let categoryName = "";
+
+    // Determine the name and category (if applicable) of the item to delete
+    if (deleteType === "category") {
+      const category = categories.find((cat) => cat.id === deleteItemId);
+      name = category ? category.name : "";
+    } else if (deleteType === "product") {
+      const product = products.find((prod) => prod.id === deleteItemId);
+      name = product ? product.name : "";
+      categoryName = product?.category?.name || "";
     }
 
-    try {
-      if (deleteType === 'category') {
-        await api.delete(`/api/categories/${deleteItemId}/`);
-        setSnackbarMessage('Category deleted successfully!');
-        fetchCategories();
-        fetchProducts();
-      } else if (deleteType === 'product') {
-        await api.delete(`/api/products/${deleteItemId}/`);
-        setSnackbarMessage('Product deleted successfully!');
-        fetchProducts();
+    // Make the Lambda call to validate the delete operation
+    const response = await fetch(
+      "https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          category: deleteType === "product" ? categoryName : undefined,
+          option: deleteType,
+          httpMethod: "DELETE",
+        }),
       }
-      setSnackbarSeverity('success');
-    } catch (error) {
-      console.error(`Failed to delete ${deleteType}:`, error);
-      setSnackbarMessage(`Error deleting ${deleteType}. ${error.response?.data?.detail || 'Please try again.'}`);
-      setSnackbarSeverity('error');
-    } finally {
-      setSnackbarOpen(true);
-      setConfirmDeleteOpen(false);
-      setDeleteItemId(null);
-      setDeleteType(null);
+    );
+    const lambdaPayload = {
+      name,
+      category: deleteType === "product" ? categoryName : undefined,
+      option: deleteType,
+      httpMethod: "DELETE",
+    };
+      // Log the payload being sent to Lambda
+      console.log("Payload sent to Lambda:", lambdaPayload);
+
+    // Check if the Lambda call was successful
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `Lambda call failed with status ${response.status} and message:`,
+        errorText
+      );
+      throw new Error("Lambda call failed: " + errorText);
     }
-  };
+
+    const lambdaResult = await response.json();
+    console.log("Lambda response:", lambdaResult);
+
+    // Proceed with database deletion if Lambda call is successful
+    if (deleteType === "category") {
+      await api.delete(`/api/categories/${deleteItemId}/`);
+      setSnackbarMessage("Category deleted successfully!");
+      fetchCategories(); // Refresh categories list
+      fetchProducts(); // Refresh products list (to remove products in deleted category)
+    } else if (deleteType === "product") {
+      await api.delete(`/api/products/${deleteItemId}/`);
+      setSnackbarMessage("Product deleted successfully!");
+      fetchProducts(); // Refresh products list
+    }
+
+    setSnackbarSeverity("success");
+  } catch (error) {
+    console.error(`Failed to delete ${deleteType}:`, error);
+    setSnackbarMessage(
+      `Error deleting ${deleteType}. ${
+        error.response?.data?.detail || "Please try again."
+      }`
+    );
+    setSnackbarSeverity("error");
+  } finally {
+    // Close dialog and reset state variables
+    setSnackbarOpen(true);
+    setConfirmDeleteOpen(false);
+    setDeleteItemId(null);
+    setDeleteType(null);
+  }
+};
 
   const onSubmit1 = async (data) => {
     try {
+      // Create the category in the database
       await api.post("/api/categories/", {
         name: data.CategoryName,
-        description: data.CategoryDescription
+        description: data.CategoryDescription,
       });
+  
+      //Call the Lambda function to create the bucket
+      const response = await fetch(
+        "https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            "name": data.CategoryName,
+            "option": "category",
+            "httpMethod" : "POST"
+          }),
+        }
+      );
+  
+      // Check Lambda response
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to create bucket. Response:", errorText);
+        throw new Error("Failed to create bucket");
+      }
+  
+      //
       setSnackbarMessage("Category created successfully!");
       setSnackbarSeverity("success");
       reset();
       handleForm1();
       fetchCategories();
     } catch (error) {
-      console.error("Failed to create category:", error);
+      console.error("Failed to complete the operation:", error);
       setSnackbarMessage("Error creating category. Please try again.");
       setSnackbarSeverity("error");
       handleForm1();
     } finally {
+   
       setSnackbarOpen(true);
     }
   };

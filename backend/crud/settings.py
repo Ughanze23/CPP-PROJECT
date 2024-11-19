@@ -104,7 +104,7 @@ DATABASES = {
         "USER": "postgres",
         "PASSWORD": "$uperBoy2024",
         "HOST": "database-1.cvhifpi70v8r.us-east-1.rds.amazonaws.com",
-        "PORT": 5432
+        "PORT": 5432 
     }
 }
 
