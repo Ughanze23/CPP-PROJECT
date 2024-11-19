@@ -167,3 +167,20 @@ class Shipment(models.Model):
     def __str__(self):
         return f"{self.logistics_company} - {self.contact_person} ({self.status})"
 
+class Notification(models.Model):
+    STATUS_CHOICES = [
+        ("OPEN", "Open"),
+        ("IN_PROGRESS", "In Progress"),
+        ("CLOSED", "Closed"),
+    ]
+
+    batch_id = models.ForeignKey(Inventory, on_delete=models.CASCADE, related_name='notifications')
+    type = models.CharField(max_length=50, choices=[("STOCK_ISSUE", "Stock Issue"), ("STOCK_EXPIRY", "Stock Expiry")])
+    product_name = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="OPEN")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Notification for {self.product_name.name} - {self.type}"

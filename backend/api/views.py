@@ -4,10 +4,10 @@ from rest_framework import generics,viewsets
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Supplier, Product, ProductCategory, Inventory, PurchaseOrder,Shipment
+from .models import Supplier, Product, ProductCategory, Inventory, PurchaseOrder,Shipment,Notification
 from .serializers import (
     SupplierSerializer, ProductSerializer, ProductCategorySerializer,
-    InventorySerializer, PurchaseOrderSerializer,ShipmentSerializer
+    InventorySerializer, PurchaseOrderSerializer,ShipmentSerializer,NotificationSerializer
 )
 import logging
 
@@ -81,3 +81,14 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Override to set the user who created the shipment."""
         serializer.save(created_by=self.request.user)
+
+class NotificationViewSet(viewsets.ModelViewSet):
+
+    """A viewset for viewing and editing Notification instances."""
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_update(self, serializer):
+        """Override to set additional logic during notification update."""
+        serializer.save()

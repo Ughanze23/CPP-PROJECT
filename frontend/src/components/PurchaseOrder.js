@@ -264,7 +264,7 @@ const PurchaseOrder = () => {
       <Dialog open={editStatusModalOpen} onClose={() => setEditStatusModalOpen(false)}>
         <DialogTitle>Edit Purchase Order Status</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <Controller
             name="new_status"
             control={control}
@@ -274,7 +274,6 @@ const PurchaseOrder = () => {
               {...field}
               select
               fullWidth
-              label="Status"
               >
       <MenuItem value="PENDING">PENDING</MenuItem>
       <MenuItem value="RECEIVED">RECEIVED</MenuItem>
@@ -295,6 +294,17 @@ const PurchaseOrder = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
+  <DialogTitle>Confirm Deletion</DialogTitle>
+  <DialogContent>
+    Are you sure you want to delete this purchase order?
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+    <Button onClick={handleDelete} color="error">Delete</Button>
+  </DialogActions>
+</Dialog>
 
       {/* Snackbar for alerts */}
       <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}

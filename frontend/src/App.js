@@ -11,6 +11,7 @@ import Register from './components/Register';
 import NotFound from './components/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import Suppliers from './components/Suppliers';
+import Notifications from './components/Notifications';
 
 function Logout() {
   localStorage.clear()
@@ -50,6 +51,7 @@ function App() {
         <Route path="purchase-order" element={<PurchaseOrder />} />
         <Route path="shipments" element={<Shipments />} />
         <Route path="inventory" element={<Inventory />} />
+        <Route path="notifications" element={<Notifications />} />
       </Route>
 
       {/* Not Found Route */}

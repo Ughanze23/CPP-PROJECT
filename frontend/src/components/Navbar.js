@@ -21,6 +21,8 @@ import { IconButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import StoreIcon from '@mui/icons-material/Store';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+
 
 export default function Navbar({ drawerWidth }) {
   const location = useLocation();
@@ -90,6 +92,14 @@ export default function Navbar({ drawerWidth }) {
                 <LocalShippingIcon />
               </ListItemIcon>
               <ListItemText primary={"Shipments"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem>
+            <ListItemButton component={Link} to="/notifications" selected={"/notifications" === path}>
+              <ListItemIcon>
+                <NotificationsActiveIcon/>
+              </ListItemIcon>
+              <ListItemText primary={"Notifications"} />
             </ListItemButton>
           </ListItem>
           <ListItem>

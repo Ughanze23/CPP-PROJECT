@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Supplier, Product, ProductCategory, PurchaseOrder, Inventory,Shipment
+from .models import Supplier, Product, ProductCategory, PurchaseOrder, Inventory,Shipment,Notification
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -224,3 +224,17 @@ class ShipmentSerializer(serializers.ModelSerializer):
         """Create a new Shipment"""
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
+class NotificationSerializer(serializers.ModelSerializer):
+    batch_id = serializers.CharField(source='batch_id.batch_id', read_only=True)  # Read-only
+    product_name = serializers.CharField(source='product_name.name', read_only=True)  # Read-only
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'batch_id', 'type', 'product_name', 'status', 'created_at', 'updated_at', 'notes']
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_status(self, value):
+        if value not in ["OPEN", "IN_PROGRESS", "CLOSED"]:
+            raise serializers.ValidationError("Invalid status. Must be one of: OPEN, IN_PROGRESS, CLOSED.")
+        return value
