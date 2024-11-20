@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "inventory-optimizer-package-23384069"
+version = "0.1.1"
+authors = [
+  { name="Ikenna Ughanze", email="ughanzepolycarp@example.com" },
+]
+description = "A simple package that ensures stock level in inventory is always optimal"
+readme = "README.md"
+requires-python = ">=3.8"
+
+dependencies = [
+    "django>=3.2",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+packages = ["src/inventory_optimizer_package_23384069"]
+
+[project.urls]
+Homepage = "https://github.com/Ughanze23/CPP-PROJECT/tree/main/inventory_optimizer"

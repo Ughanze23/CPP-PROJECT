@@ -156,3 +156,8 @@ CORS_ALLOWS_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
+
+AWS_SQS_QUEUE_URL = 'https://sqs.eu-west-1.amazonaws.com/339712727128/myInventoryOptimizerQueue'
+AWS_ACCESS_KEY_ID = 'AKIAU6GDU3BMNRPX4D7A'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_REGION = 'eu-west-1'

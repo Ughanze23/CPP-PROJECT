@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
+from .inventory_stock_sqs import InventoryOptimizationQueue
 
 # Create your models here.
 class ProductCategory(models.Model):
@@ -83,6 +85,11 @@ class Inventory(models.Model):
             self.product.stock_quantity -= abs(self.quantity)
 
         self.product.save()
+
+        # Add queue call here for REMOVE operations
+        if self.status == "REMOVE":
+            queue = InventoryOptimizationQueue(settings.AWS_SQS_QUEUE_URL)
+            queue.queue_product_analysis(self.product.id)
 
     def __str__(self):
         return f"{self.product.name} - {self.status} ({self.quantity}) - Expiry: {self.expiry_date}"
@@ -174,7 +181,7 @@ class Notification(models.Model):
         ("CLOSED", "Closed"),
     ]
 
-    batch_id = models.ForeignKey(Inventory, on_delete=models.CASCADE, related_name='notifications')
+    batch_id = models.ForeignKey(Inventory, on_delete=models.CASCADE, related_name='notifications', null=True)
     type = models.CharField(max_length=50, choices=[("STOCK_ISSUE", "Stock Issue"), ("STOCK_EXPIRY", "Stock Expiry")])
     product_name = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="OPEN")
