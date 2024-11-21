@@ -157,7 +157,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-AWS_SQS_QUEUE_URL = 'https://sqs.eu-west-1.amazonaws.com/339712727128/myInventoryOptimizerQueue'
-AWS_ACCESS_KEY_ID = 'AKIAU6GDU3BMNRPX4D7A'
-AWS_SECRET_ACCESS_KEY = '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'
+AWS_INVENTORY_SQS_QUEUE_URL = os.environ.get('AWS_SQS_QUEUE_URL')
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_REGION = 'eu-west-1'
+AWS_SHIPMENT_SQS_QUEUE_URL= os.environ.get('AWS_SHIPMENT_SQS_QUEUE_URL')

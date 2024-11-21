@@ -4,6 +4,9 @@ from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
 from .inventory_stock_sqs import InventoryOptimizationQueue
+from django.db import transaction
+import json
+import boto3
 
 # Create your models here.
 class ProductCategory(models.Model):
@@ -88,8 +91,8 @@ class Inventory(models.Model):
 
         # Add queue call here for REMOVE operations
         if self.status == "REMOVE":
-            queue = InventoryOptimizationQueue(settings.AWS_SQS_QUEUE_URL)
-            queue.queue_product_analysis(self.product.id)
+            queue = InventoryOptimizationQueue(settings.AWS_INVENTORY_SQS_QUEUE_URL)
+            queue.queue_product_id(self.product.id)
 
     def __str__(self):
         return f"{self.product.name} - {self.status} ({self.quantity}) - Expiry: {self.expiry_date}"
@@ -191,3 +194,138 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.product_name.name} - {self.type}"
+
+class Customer(models.Model):
+    """Customer Table"""
+    name = models.CharField(max_length=200)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=12, blank=True, null=True)
+    eir_code = models.CharField(max_length=7)  # Irish postal code
+    zone = models.IntegerField(
+        choices=[(i, str(i)) for i in range(1, 25)],  # 1-24
+        help_text="Delivery zone (1-24)"
+    )
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="customers_created_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
+class Order(models.Model):
+    """Orders Table"""
+    STATUS_CHOICES = [
+        ("PENDING", "Pending"),
+        ("PROCESSING", "Processing"),
+        ("SHIPPED", "Shipped"),
+        ("DELIVERED", "Delivered"),
+        ("CANCELLED", "Cancelled")
+    ]
+    
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
+    order_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="orders_created_by")
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.customer.name}"
+
+class OrderItem(models.Model):
+    """Order Items Table"""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='order_items')
+    quantity = models.PositiveIntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.order.id} - {self.product.name} ({self.quantity})"
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            
+            remaining_quantity = self.quantity
+            batches = Inventory.objects.filter(
+                product=self.product,
+                status__in=["ADD", "RETURN"]
+            ).order_by('expiry_date')
+
+            for batch in batches:
+                if remaining_quantity <= 0:
+                    break
+
+                if batch.quantity > 0:
+                    quantity_from_batch = min(batch.quantity, remaining_quantity)
+                    batch.quantity -= quantity_from_batch
+                    batch.save()
+                    remaining_quantity -= quantity_from_batch
+
+            if remaining_quantity > 0:
+                raise ValueError(f"Insufficient stock for product {self.product.name}")
+
+class SalesOrder(models.Model):
+    """Sales Order Table"""
+    STATUS_CHOICES = [
+        ("PAID", "Paid"),
+        ("CANCELLED", "Cancelled")  # For returned orders
+    ]
+    
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='sales_order')
+    payment_terms = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PAID")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="sales_orders_created_by")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Sales Order - {self.order.customer.name} ({self.status})"
+
+class ShipmentOrder(models.Model):
+    """Shipment Order Table"""
+    STATUS_CHOICES = [
+        ("PENDING", "Pending"),
+        ("DELIVERED", "Delivered"),
+        ("CANCELLED", "Cancelled")
+    ]
+    
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='shipment')
+    shipment_provider = models.ForeignKey(Shipment, on_delete=models.SET_NULL, null=True, related_name='shipment_orders')
+    shipping_address = models.CharField(max_length=7)  # eir_code
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Shipment for Order #{self.order.id} - {self.order.customer.name}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        # Send message to SQS
+        if self.status == "PENDING":
+            sqs = boto3.client(
+                'sqs',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION
+            )
+
+            message = {
+                'order_id': self.order.id,
+                'shipping_zone': self.order.customer.zone,
+                'eir_code': self.shipping_address
+            }
+
+            try:
+                sqs.send_message(
+                    QueueUrl=settings.AWS_SHIPMENT_SQS_QUEUE_URL,
+                    MessageBody=json.dumps(message)
+                )
+            except Exception as e:
+                print(f"Error sending to SQS: {e}")

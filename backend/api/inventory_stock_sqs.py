@@ -1,4 +1,3 @@
-# inventory_stock_sqs.py
 import boto3
 import json
 from django.conf import settings
@@ -10,7 +9,7 @@ class InventoryOptimizationQueue:
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
         self.queue_url = queue_url
 
-    def queue_product_analysis(self, product_id):
+    def queue_product_id(self, product_id):
         """send product_id to queue for processing inventory level data"""
         try:
             message = {'product_id': product_id}

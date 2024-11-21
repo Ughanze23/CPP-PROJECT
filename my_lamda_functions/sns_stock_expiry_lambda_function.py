@@ -3,6 +3,7 @@ import boto3
 import logging
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
@@ -13,10 +14,10 @@ def lambda_handler(event, context):
         # Connect to the database
         logging.info("Connecting to the database...")
         conn = psycopg2.connect(
-            host="database-1.cvhifpi70v8r.us-east-1.rds.amazonaws.com",
-            database="cpp",
-            user="postgres",
-            password="$uperBoy2024",
+            database=os.environ['DB_NAME'],
+            user=os.environ['DB_USER'],
+            password=os.environ['DB_PASSWORD'],
+            host=os.environ['DB_HOST'],
             port="5432"
         )
         cursor = conn.cursor()
@@ -68,7 +69,7 @@ def lambda_handler(event, context):
         # Send email notification if new records were added
         if new_notifications_count > 0:
             sns_client = boto3.client('sns')
-            topic_arn = "arn:aws:sns:eu-west-1:339712727128:MyStockLevelTopic"
+            topic_arn = os.environ['SNS_TOPIC_ARN']
             message = f"{new_notifications_count} item(s) in our warehouse are expiring in 30 days."
             subject = "Stock Expiry Alert"
 

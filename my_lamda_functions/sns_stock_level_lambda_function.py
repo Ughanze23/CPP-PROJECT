@@ -19,7 +19,8 @@ def lambda_handler(event, context):
             dbname=os.environ['DB_NAME'],
             user=os.environ['DB_USER'],
             password=os.environ['DB_PASSWORD'],
-            host=os.environ['DB_HOST']
+            host=os.environ['DB_HOST'],
+            port="5432"
         )
         cursor = conn.cursor()
         logging.info("Database connection successful")
@@ -42,20 +43,21 @@ def lambda_handler(event, context):
             """, (product_id,))
             current_stock = cursor.fetchone()[0]
             
-            # Get sales data
+            # Get sales data from order items
             cursor.execute("""
-                SELECT created_at, quantity 
-                FROM api_inventory 
-                WHERE product_id = %s 
-                AND status = 'REMOVE'
-                AND created_at >= NOW() - INTERVAL '7 days'
+                SELECT oi.quantity 
+                FROM api_orderitem oi
+                JOIN api_order o ON oi.order_id = o.id
+                WHERE oi.product_id = %s 
+                AND o.status = 'DELIVERED'
+                AND o.order_date >= NOW() - INTERVAL '7 days'
             """, (product_id,))
-            sales_data = cursor.fetchall()
+            order_items = cursor.fetchall()
             
             optimizer = InventoryOptimizer()
             recommendations = optimizer.generate_recommendations(
                 product_id=product_id,
-                sales_data=sales_data,
+                order_item_model=order_items,
                 current_stock=current_stock
             )
             
@@ -72,7 +74,7 @@ def lambda_handler(event, context):
                     datetime.now(),
                     datetime.now(),
                     f"Stock Alert: Current stock ({current_stock}) is below reorder point ({recommendations['reorder_point']}). "
-                    f"Recommended order: {recommendations['recommended_order']} units"
+                    f"Recommended order: {recommendations['recommended_order']} units based on 7-day sales average of {recommendations['daily_average_usage']} units/day"
                 ))
                 new_notifications_count += 1
             
@@ -89,7 +91,7 @@ def lambda_handler(event, context):
         if new_notifications_count > 0:
             sns_client = boto3.client('sns')
             topic_arn = os.environ['SNS_TOPIC_ARN']
-            message = f"{new_notifications_count} product(s) require restocking."
+            message = f"{new_notifications_count} product(s) require restocking based on recent sales analysis."
             subject = "Stock Level Alert"
             
             logging.info(f"Sending SNS notification to topic: {topic_arn}")
@@ -102,20 +104,11 @@ def lambda_handler(event, context):
                 logging.info("SNS notification sent successfully")
             except ClientError as e:
                 logging.error(f"Failed to send SNS notification: {e}")
-        
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'message': 'Processing complete', 'notifications_created': new_notifications_count})
-        }
-        
+                
     except Exception as e:
         logging.error(f"Error: {str(e)}", exc_info=True)
         if conn:
             conn.rollback()
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
         
     finally:
         if conn:

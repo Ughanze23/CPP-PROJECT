@@ -7,7 +7,7 @@ name_prefix = "mycppproject23384069"
 
 def lambda_handler(event, context):
     try:
-        # Parse body safely
+ 
         body = json.loads(event.get('body', '{}'))
         http_method = body.get('httpMethod')  # Get HTTP method
 
@@ -110,7 +110,6 @@ def lambda_handler(event, context):
                 }
 
         else:
-            # Invalid HTTP method or option
             return {
                 'statusCode': 400,
                 'body': json.dumps({'error': 'Invalid request or option'})
