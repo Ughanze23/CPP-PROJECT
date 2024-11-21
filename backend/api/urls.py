@@ -12,6 +12,11 @@ router.register(r'purchase-orders', PurchaseOrderViewSet, basename='purchase-ord
 router.register(r'suppliers', SupplierViewSet, basename='supplier')
 router.register(r'shipping', ShipmentViewSet, basename='shipment')
 router.register(r'notifications',NotificationViewSet , basename='notification')
+router.register(r'shipment-orders', ShipmentOrderViewSet, basename='shipment-order')
+router.register(r'customers', CustomerViewSet, basename='customer')
+router.register(r'orders', OrderViewSet, basename='order')
+router.register(r'order-items', OrderItemViewSet, basename='order-item')
+router.register(r'sales-orders', SalesOrderViewSet, basename='sale-order')
 
 
 # Define urlpatterns

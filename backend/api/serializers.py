@@ -1,9 +1,11 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Supplier, Product, ProductCategory, PurchaseOrder, Inventory,Shipment,Notification
+from .models import Supplier, Product, ProductCategory, PurchaseOrder, \
+Inventory,Shipment,Notification,Customer,SalesOrder,Order,OrderItem,ShipmentOrder
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from django.db import models
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -238,3 +240,122 @@ class NotificationSerializer(serializers.ModelSerializer):
         if value not in ["OPEN", "IN_PROGRESS", "CLOSED"]:
             raise serializers.ValidationError("Invalid status. Must be one of: OPEN, IN_PROGRESS, CLOSED.")
         return value
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = [
+            "id", "name", "email", "phone", "eir_code", "zone",
+            "created_by", "created_at", "updated_at"
+        ]
+        read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def validate_email(self, value):
+        """Check that email is unique"""
+        customer = self.instance
+        if customer and customer.email != value and Customer.objects.filter(email=value).exists():
+            raise ValidationError("A customer with this email already exists.")
+        return value
+
+    def validate_eir_code(self, value):
+        """Validate eir_code format"""
+        if len(value) != 7:
+            raise ValidationError("Invalid eir_code format. Must be 7 characters.")
+        return value
+
+    def create(self, validated_data):
+        validated_data["created_by"] = self.context['request'].user
+        return super().create(validated_data)
+
+class OrderSerializer(serializers.ModelSerializer):
+    customer = CustomerSerializer(read_only=True)
+    customer_id = serializers.PrimaryKeyRelatedField(
+        queryset=Customer.objects.all(), source='customer', write_only=True
+    )
+
+    class Meta:
+        model = Order
+        fields = [
+            "id", "customer", "customer_id", "order_date", "status",
+            "total_amount", "created_by", "notes"
+        ]
+        read_only_fields = ["created_by", "order_date"]
+
+    def create(self, validated_data):
+        validated_data["created_by"] = self.context['request'].user
+        return super().create(validated_data)
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), source='product', write_only=True
+    )
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id", "order", "product", "product_id",
+            "quantity", "unit_price", "created_at"
+        ]
+        read_only_fields = ["created_at"]
+
+    def validate(self, data):
+        """Validate if there's enough stock"""
+        product = data['product']
+        quantity = data['quantity']
+        
+        # Get available stock
+        available_stock = Inventory.objects.filter(
+            product=product,
+            status__in=["ADD", "RETURN"]
+        ).aggregate(
+            total=models.Sum('quantity')
+        )['total'] or 0
+
+        if quantity > available_stock:
+            raise ValidationError(f"Insufficient stock. Only {available_stock} units available.")
+        
+        return data
+
+class SalesOrderSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(read_only=True)
+
+    class Meta:
+        model = SalesOrder
+        fields = [
+            "id", "order", "payment_terms", "status",
+            "created_by", "created_at", "updated_at"
+        ]
+        read_only_fields = ["created_by", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        validated_data["created_by"] = self.context['request'].user
+        return super().create(validated_data)
+
+class ShipmentOrderSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(read_only=True)
+    shipment_provider = ShipmentSerializer(read_only=True)
+    shipment_provider_id = serializers.PrimaryKeyRelatedField(
+        queryset=Shipment.objects.all(), source='shipment_provider', write_only=True
+    )
+
+    class Meta:
+        model = ShipmentOrder
+        fields = [
+            "id", "order", "shipment_provider", "shipment_provider_id",
+            "shipping_address", "status", "created_at", "updated_at"
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def validate_shipping_address(self, value):
+        if len(value) != 7:
+            raise ValidationError("Invalid eir_code format. Must be 7 characters.")
+        return value
+
+    def create(self, validated_data):
+        order = self.context['order']
+        validated_data['order'] = order
+        validated_data['shipping_address'] = order.customer.eir_code
+        return super().create(validated_data)

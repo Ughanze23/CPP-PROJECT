@@ -4,10 +4,13 @@ from rest_framework import generics,viewsets
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Supplier, Product, ProductCategory, Inventory, PurchaseOrder,Shipment,Notification
+from .models import Supplier, Product, ProductCategory, Inventory, PurchaseOrder,Shipment,Notification\
+,Customer, Order, OrderItem, SalesOrder, ShipmentOrder
 from .serializers import (
     SupplierSerializer, ProductSerializer, ProductCategorySerializer,
-    InventorySerializer, PurchaseOrderSerializer,ShipmentSerializer,NotificationSerializer
+    InventorySerializer, PurchaseOrderSerializer,ShipmentSerializer,NotificationSerializer,
+     CustomerSerializer, OrderSerializer, OrderItemSerializer,
+   SalesOrderSerializer, ShipmentOrderSerializer
 )
 import logging
 
@@ -92,3 +95,64 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Override to set additional logic during notification update."""
         serializer.save()
+
+
+class CustomerViewSet(viewsets.ModelViewSet):
+   """A viewset for managing customer data"""
+   queryset = Customer.objects.all()
+   serializer_class = CustomerSerializer
+   permission_classes = [IsAuthenticated]
+
+   def perform_create(self, serializer):
+       serializer.save(created_by=self.request.user)
+
+class OrderViewSet(viewsets.ModelViewSet):
+   """A viewset for managing orders"""
+   queryset = Order.objects.all()
+   serializer_class = OrderSerializer
+   permission_classes = [IsAuthenticated]
+
+   def perform_create(self, serializer):
+       serializer.save(created_by=self.request.user)
+
+class OrderItemViewSet(viewsets.ModelViewSet):
+   """A viewset for managing order items"""
+   queryset = OrderItem.objects.all()
+   serializer_class = OrderItemSerializer
+   permission_classes = [IsAuthenticated]
+
+   def get_queryset(self):
+       """Optionally filter by order"""
+       queryset = OrderItem.objects.all()
+       order_id = self.request.query_params.get('order_id', None)
+       if order_id is not None:
+           queryset = queryset.filter(order_id=order_id)
+       return queryset
+
+class SalesOrderViewSet(viewsets.ModelViewSet):
+   """A viewset for managing sales orders"""
+   queryset = SalesOrder.objects.all()
+   serializer_class = SalesOrderSerializer
+   permission_classes = [IsAuthenticated]
+
+   def perform_create(self, serializer):
+       serializer.save(created_by=self.request.user)
+
+class ShipmentOrderViewSet(viewsets.ModelViewSet):
+   """A viewset for managing shipment orders"""
+   queryset = ShipmentOrder.objects.all()
+   serializer_class = ShipmentOrderSerializer
+   permission_classes = [IsAuthenticated]
+
+   def get_serializer_context(self):
+       """Add order to context if creating new shipment order"""
+       context = super().get_serializer_context()
+       if self.action == 'create':
+           order_id = self.request.data.get('order_id')
+           if order_id:
+               try:
+                   order = Order.objects.get(id=order_id)
+                   context['order'] = order
+               except Order.DoesNotExist:
+                   raise ValidationError("Invalid order_id provided")
+       return context
