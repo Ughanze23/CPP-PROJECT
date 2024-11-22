@@ -101,9 +101,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "cpp",
-        "USER": "postgres",
-        "PASSWORD": "$uperBoy2024",
-        "HOST": "database-1.cvhifpi70v8r.us-east-1.rds.amazonaws.com",
+        "USER": os.environ.get('DB_USER'),
+        "PASSWORD": os.environ.get('DB_PASSWORD'),
+        "HOST": os.environ.get('DB_HOST'),
         "PORT": 5432 
     }
 }
