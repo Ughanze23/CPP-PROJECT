@@ -273,6 +273,7 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_id = serializers.PrimaryKeyRelatedField(
         queryset=Customer.objects.all(), source='customer', write_only=True
     )
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)  # Make it read-only
 
     class Meta:
         model = Order
@@ -280,10 +281,11 @@ class OrderSerializer(serializers.ModelSerializer):
             "id", "customer", "customer_id", "order_date", "status",
             "total_amount", "created_by", "notes"
         ]
-        read_only_fields = ["created_by", "order_date"]
+        read_only_fields = ["created_by", "order_date", "total_amount"]
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context['request'].user
+        validated_data["total_amount"] = 0  # Initialize to 0, will be updated when OrderItems are added
         return super().create(validated_data)
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -299,7 +301,36 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "id", "order", "product", "product_id",
             "quantity", "unit_price", "created_at"
         ]
-        read_only_fields = ["created_at"]
+        read_only_fields = ["created_at", "unit_price"]
+
+    def create(self, validated_data):
+        # Set unit_price from product's current price
+        validated_data['unit_price'] = validated_data['product'].price
+        order_item = super().create(validated_data)
+
+        # Update order total
+        order = order_item.order
+        order.total_amount = OrderItem.objects.filter(order=order).aggregate(
+            total=models.Sum(models.F('quantity') * models.F('unit_price'))
+        )['total'] or 0
+        order.save()
+
+        return order_item
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), source='product', write_only=True
+    )
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id", "order", "product", "product_id",
+            "quantity", "unit_price", "created_at"
+        ]
+        read_only_fields = ["created_at", "unit_price"]  # Make unit_price read-only
 
     def validate(self, data):
         """Validate if there's enough stock"""
@@ -319,16 +350,39 @@ class OrderItemSerializer(serializers.ModelSerializer):
         
         return data
 
+    def create(self, validated_data):
+        """Set unit_price from product's current price during creation"""
+        validated_data['unit_price'] = validated_data['product'].price
+        return super().create(validated_data)
+
 class SalesOrderSerializer(serializers.ModelSerializer):
     order = OrderSerializer(read_only=True)
+    order_id = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all(), source='order', write_only=True
+    )
+    total_amount = serializers.DecimalField(
+        source='order.total_amount',
+        read_only=True,
+        max_digits=10,
+        decimal_places=2
+    )
 
     class Meta:
         model = SalesOrder
         fields = [
-            "id", "order", "payment_terms", "status",
-            "created_by", "created_at", "updated_at"
+            "id", "order", "order_id", "payment_terms", 
+            "status", "total_amount", "created_by", 
+            "created_at", "updated_at"
         ]
-        read_only_fields = ["created_by", "created_at", "updated_at"]
+        read_only_fields = ["created_by", "created_at", "updated_at", "total_amount"]
+
+    def validate_order(self, value):
+        """Ensure order has items and is not already processed"""
+        if not value.items.exists():
+            raise ValidationError("Cannot create sales order for an order without items")
+        if hasattr(value, 'sales_order'):
+            raise ValidationError("Sales order already exists for this order")
+        return value
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context['request'].user

@@ -1,20 +1,9 @@
-import json
-import psycopg2
-import boto3
-import logging
-from botocore.exceptions import ClientError
-from inventory_optimizer import InventoryOptimizer
-import os
-from datetime import datetime
-
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
-
 def lambda_handler(event, context):
     conn = None
     new_notifications_count = 0
     
     try:
-        logging.info("Connecting to database...")
+      
         conn = psycopg2.connect(
             dbname=os.environ['DB_NAME'],
             user=os.environ['DB_USER'],
@@ -30,18 +19,15 @@ def lambda_handler(event, context):
             message = json.loads(record['body'])
             product_id = message['product_id']
             
-            # Get current stock
+            # Simplified current stock query
             cursor.execute("""
-                SELECT COALESCE(SUM(
-                    CASE 
-                        WHEN status IN ('ADD', 'RETURN') THEN quantity
-                        WHEN status IN ('REMOVE', 'ADJUST') THEN -quantity
-                    END
-                ), 0)
+                SELECT SUM(quantity) 
                 FROM api_inventory 
                 WHERE product_id = %s
+                GROUP BY product_id
             """, (product_id,))
-            current_stock = cursor.fetchone()[0]
+            current_stock_result = cursor.fetchone()
+            current_stock = current_stock_result[0] if current_stock_result else 0
             
             # Get sales data from order items
             cursor.execute("""
@@ -52,12 +38,12 @@ def lambda_handler(event, context):
                 AND o.status = 'DELIVERED'
                 AND o.order_date >= NOW() - INTERVAL '7 days'
             """, (product_id,))
-            order_items = cursor.fetchall()
+            delivered_quantities = cursor.fetchall()
             
             optimizer = InventoryOptimizer()
             recommendations = optimizer.generate_recommendations(
                 product_id=product_id,
-                order_item_model=order_items,
+                delivered_quantities=delivered_quantities,
                 current_stock=current_stock
             )
             
