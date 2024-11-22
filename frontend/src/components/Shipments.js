@@ -40,6 +40,8 @@ const Shipments = () => {
   const [deleteShippingPartnerId, setDeleteShippingPartnerId] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState(null); // Store selected shipment for editing
+  const [shipmentOrders, setShipmentOrders] = useState([]);
+const [loadingShipments, setLoadingShipments] = useState(true);
 
   const { setValue, handleSubmit, control, reset } = useForm({ defaultValues: defaultValues });
 
@@ -113,6 +115,59 @@ const Shipments = () => {
             {row.original.status ? 'Active' : 'Inactive'}
           </Box>
         ),
+      },
+    ],
+    []
+  );
+
+
+  const shipmentOrderColumns = useMemo(
+    () => [
+      {
+        accessorKey: 'id',
+        header: 'Shipment ID',
+        size: 100,
+      },
+      {
+        accessorKey: 'order.id',
+        header: 'Order ID',
+        size: 100,
+      },
+      {
+        accessorKey: 'shipment_provider.logistics_company',
+        header: 'Delivery Partner',
+        size: 200,
+      },
+      {
+        accessorKey: 'shipping_address',
+        header: 'EirCode',
+        size: 150,
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        size: 150,
+        Cell: ({ cell }) => (
+          <Box
+            sx={{
+              backgroundColor: 
+                cell.getValue() === 'PENDING' ? '#fff3e0' : 
+                cell.getValue() === 'DELIVERED' ? '#e8f5e9' : 
+                '#ffebee',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              display: 'inline-block',
+            }}
+          >
+            {cell.getValue()}
+          </Box>
+        ),
+      },
+      {
+        accessorKey: 'created_at',
+        header: 'Created Date',
+        size: 200,
+        Cell: ({ cell }) => new Date(cell.getValue()).toLocaleString(),
       },
     ],
     []
@@ -197,6 +252,25 @@ const Shipments = () => {
     }
   };
 
+  //fetch shipment orders data
+  const fetchShipmentOrders = async () => {
+    try {
+      const response = await api.get('/api/shipment-orders/');
+      setShipmentOrders(response.data);
+    } catch (error) {
+      console.error('Failed to fetch shipment orders:', error);
+      setSnackbarMessage('Error loading shipment orders');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingShipments(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchShipmentOrders();
+  }, []);
+
   return (
     <div>
       <Grid container spacing={2}>
@@ -260,7 +334,7 @@ const Shipments = () => {
           </Box>
         </Grid>
       </Grid>
-
+{/* shipping partners table*/}
       <Box sx={{ mt: 2 }}>
         <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
           Delivery Partners
@@ -298,6 +372,18 @@ const Shipments = () => {
           )}
         />
       </Box>
+          {/* shipment orders table*/}
+      <Box sx={{ mt: 4 }}>
+  <Typography variant="h6" sx={{ marginLeft: '20px', mb: 2 }}>
+    Shipment Orders
+  </Typography>
+  <MaterialReactTable 
+    columns={shipmentOrderColumns}
+    data={shipmentOrders}
+    state={{ isLoading: loadingShipments }}
+    enableRowActions={false}
+  />
+</Box>
 
       {/* Edit Shipping Partner Modal */}
       <Dialog open={showEditForm} onClose={() => setShowEditForm(false)}>
@@ -366,6 +452,21 @@ const Shipments = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+<Dialog
+  open={confirmDeleteOpen}
+  onClose={() => setConfirmDeleteOpen(false)}
+>
+  <DialogTitle>Confirm Delete</DialogTitle>
+  <DialogContent>
+    Are you sure you want to delete this delivery partner?
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+    <Button onClick={handleDelete} color="error">Delete</Button>
+  </DialogActions>
+</Dialog>
 
       <Snackbar
         open={snackbarOpen}

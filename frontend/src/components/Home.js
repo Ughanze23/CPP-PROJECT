@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState, useEffect, useMemo } from 'react';
+import api from "../api";
 
  const Home = () => {
   return (
