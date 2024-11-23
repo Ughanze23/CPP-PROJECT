@@ -51,7 +51,6 @@ ARG AWS_SHIPMENT_SQS_QUEUE_URL
 
 # Set environment variables from build arguments
 ENV SECRET_KEY=$SECRET_KEY \
-    DB_NAME=$DB_NAME \
     DB_USER=$DB_USER \
     DB_PASSWORD=$DB_PASSWORD \
     DB_HOST=$DB_HOST \
@@ -62,7 +61,7 @@ ENV SECRET_KEY=$SECRET_KEY \
     AWS_SHIPMENT_SQS_QUEUE_URL=$AWS_SHIPMENT_SQS_QUEUE_URL
 
 
-RUN echo "DB_NAME: $DB_NAME" && \
+RUN echo "DB_NAME: $DB_PASSWORD" && \
     echo "DB_USER: $DB_USER" && \
     echo "DB_HOST: $DB_HOST"    
 # run django migration command

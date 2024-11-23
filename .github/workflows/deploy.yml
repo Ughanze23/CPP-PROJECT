@@ -63,7 +63,6 @@ jobs:
                 docker build \
                   --build-arg REACT_APP_API_URL="${{ secrets.REACT_APP_API_URL }}" \
                   --build-arg SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-                  --build-arg DB_NAME="${{ secrets.DB_NAME }}" \
                   --build-arg DB_USER="${{ secrets.DB_USER }}" \
                   --build-arg DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
                   --build-arg DB_HOST="${{ secrets.DB_HOST }}" \
@@ -91,7 +90,6 @@ jobs:
                     docker rm oms-backend || true
                     docker run -d \
                       -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-                      -e DB_NAME="${{ secrets.DB_NAME }}" \
                       -e DB_USER="${{ secrets.DB_USER }}" \
                       -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
                       -e DB_HOST="${{ secrets.DB_HOST }}" \
