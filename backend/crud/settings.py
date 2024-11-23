@@ -103,7 +103,7 @@ DATABASES = {
         "NAME": "cpp",
         "USER": os.environ.get('DB_USER'),
         "PASSWORD": os.environ.get('DB_PASSWORD'),
-        "HOST": os.environ.get('DB_HOST'),
+        "HOST": "database-1.cvhifpi70v8r.us-east-1.rds.amazonaws.com",
         "PORT": 5432 
     }
 }
