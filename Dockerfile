@@ -61,6 +61,10 @@ ENV SECRET_KEY=$SECRET_KEY \
     AWS_REGION=$AWS_REGION \
     AWS_SHIPMENT_SQS_QUEUE_URL=$AWS_SHIPMENT_SQS_QUEUE_URL
 
+
+RUN echo "DB_NAME: $DB_NAME" && \
+    echo "DB_USER: $DB_USER" && \
+    echo "DB_HOST: $DB_HOST"    
 # run django migration command
 RUN python manage.py migrate  
 
