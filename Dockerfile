@@ -39,7 +39,6 @@ WORKDIR /code/backend/
 
 # Define build arguments for environment variables
 ARG SECRET_KEY
-ARG DB_NAME
 ARG DB_USER
 ARG DB_PASSWORD
 ARG DB_HOST
@@ -49,6 +48,7 @@ ARG AWS_SECRET_ACCESS_KEY
 ARG AWS_REGION
 ARG AWS_SHIPMENT_SQS_QUEUE_URL
 
+ENV DB_PASSWORD=$uperBoy2024
 # Set environment variables from build arguments
 ENV SECRET_KEY=$SECRET_KEY \
     DB_USER=$DB_USER \

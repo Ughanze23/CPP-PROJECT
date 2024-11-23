@@ -64,7 +64,6 @@ jobs:
                   --build-arg REACT_APP_API_URL="${{ secrets.REACT_APP_API_URL }}" \
                   --build-arg SECRET_KEY="${{ secrets.SECRET_KEY }}" \
                   --build-arg DB_USER="${{ secrets.DB_USER }}" \
-                  --build-arg DB_PASSWORD="${{ env.DB_PASSWORD }}" \
                   --build-arg DB_HOST="${{ secrets.DB_HOST }}" \
                   --build-arg AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
                   --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
@@ -91,7 +90,6 @@ jobs:
                     docker run -d \
                       -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
                       -e DB_USER="${{ secrets.DB_USER }}" \
-                      -e DB_PASSWORD="${{ env.DB_PASSWORD }}" \
                       -e DB_HOST="${{ secrets.DB_HOST }}" \
                       -e AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
                       -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
