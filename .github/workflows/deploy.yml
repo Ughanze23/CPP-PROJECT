@@ -19,31 +19,6 @@ jobs:
         steps:
             - name: Fetch code
               uses: actions/checkout@v3
-            
-            - name: Check if secrets exist
-              run: |
-                echo "Checking secrets..."
-                echo "DOCKERHUB_USERNAME exists: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
-                echo "DOCKERHUB_TOKEN exists: ${{ secrets.DOCKERHUB_TOKEN != '' }}"
-                echo "DOCKER_USERNAME exists: ${{ secrets.DOCKER_USERNAME != '' }}"
-                echo "DOCKER_PASSWORD exists: ${{ secrets.DOCKER_PASSWORD != '' }}"
-                echo "AWS_EC2_KEY exists: ${{ secrets.AWS_EC2_KEY != '' }}"
-                echo "AWS_EC2_IP exists: ${{ secrets.AWS_EC2_IP != '' }}"
-                echo "SECRET_KEY exists: ${{ secrets.SECRET_KEY != '' }}"
-                echo "DB_NAME exists: ${{ secrets.DB_NAME != '' }}"
-                echo "DB_USER exists: ${{ secrets.DB_USER != '' }}"
-                echo "DB_PASSWORD exists: ${{ secrets.DB_PASSWORD != '' }}"
-                echo "DB_HOST exists: ${{ secrets.DB_HOST != '' }}"
-                echo "AWS_SQS_QUEUE_URL exists: ${{ secrets.AWS_SQS_QUEUE_URL != '' }}"
-                echo "AWS_ACCESS_KEY_ID exists: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}"
-                echo "AWS_SECRET_ACCESS_KEY exists: ${{ secrets.AWS_SECRET_ACCESS_KEY != '' }}"
-                echo "AWS_REGION exists: ${{ secrets.AWS_REGION != '' }}"
-                echo "AWS_SHIPMENT_SQS_QUEUE_URL exists: ${{ secrets.AWS_SHIPMENT_SQS_QUEUE_URL != '' }}"
-                echo "REACT_APP_API_URL exists: ${{ secrets.REACT_APP_API_URL != '' }}"
-                
-                # Print first few characters of some secrets (safely)
-                echo "DB_HOST prefix: ${DB_HOST:0:15}..."
-                echo "AWS_EC2_IP prefix: ${AWS_EC2_IP:0:10}..."
 
             - name: setup Docker Buildx
               uses: docker/setup-buildx-action@v1
@@ -67,26 +42,25 @@ jobs:
                   -t ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest .
                 docker push ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest
             
-            - name: Setup SSH
-              run: |
-                  mkdir -p ~/.ssh/
-                  echo "${{ secrets.AWS_EC2_KEY }}" > ~/.ssh/id_rsa
-                  chmod 600 ~/.ssh/id_rsa
-                  ssh-keyscan -H ${{ secrets.AWS_EC2_IP }} >> ~/.ssh/known_hosts
-            
-            - name: Deploy on AWS EC2 
-              run: |
-                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.AWS_EC2_IP }} << 'EOF'
+            - name: Deploy to EC2
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.AWS_EC2_IP }}
+                  username: ubuntu  # or your EC2 username
+                  key: ${{ secrets.AWS_EC2_KEY }}
+                  script: |
                     docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
                     docker pull ${{ secrets.DOCKER_USERNAME }}/oms-backend:latest
                     docker stop oms-backend || true
                     docker rm oms-backend || true
                     docker run -d \
                       -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+                      -e DB_USER="${{ secrets.DB_USER }}" \
+                      -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+                      -e DB_HOST="${{ secrets.DB_HOST }}" \
                       -e AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
                       -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
                       -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
                       -e AWS_REGION="${{ secrets.AWS_REGION }}" \
                       -e AWS_SHIPMENT_SQS_QUEUE_URL="${{ secrets.AWS_SHIPMENT_SQS_QUEUE_URL }}" \
                       --name oms-backend -p 80:8080 ${{ secrets.DOCKER_USERNAME }}/oms-backend:latest
-                  EOF
