@@ -52,7 +52,6 @@ ENV DB_PASSWORD=$uperBoy2024
 # Set environment variables from build arguments
 ENV SECRET_KEY=$SECRET_KEY \
     DB_USER=$DB_USER \
-    DB_PASSWORD=$DB_PASSWORD \
     DB_HOST=$DB_HOST \
     AWS_SQS_QUEUE_URL=$AWS_SQS_QUEUE_URL \
     AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \ 
