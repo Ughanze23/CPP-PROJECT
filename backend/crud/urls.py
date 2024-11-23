@@ -21,7 +21,6 @@ from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from crud import settings
 from django.conf.urls.static import static
-from views import index
 from .views import index 
 
 urlpatterns = [

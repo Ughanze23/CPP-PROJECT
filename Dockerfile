@@ -25,6 +25,7 @@ WORKDIR /code
 
 # copy django project
 COPY ./backend /code/backend/
+COPY .env.docker /code/backend/.env
 
 RUN pip install -r ./backend/requirements.txt
 
