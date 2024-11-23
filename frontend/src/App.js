@@ -1,5 +1,5 @@
 import './App.css';
-import { Routes,Route,Navigate } from 'react-router-dom';
+import { Routes,Route} from 'react-router-dom';
 import Home from './components/Home';
 import Navbar from './components/Navbar';
 import Products from './components/Products';
@@ -8,15 +8,17 @@ import Shipments from './components/Shipments';
 import Inventory from './components/Inventory';
 import Login from './components/Login';
 import Register from './components/Register';
-import NotFound from './components/NotFound';
+import NotFound from './components/NotFound'; 
 import ProtectedRoute from './components/ProtectedRoute';
 import Suppliers from './components/Suppliers';
 import Notifications from './components/Notifications';
+import React from 'react';
 
+{/*
 function Logout() {
   localStorage.clear()
   return <Navigate to="/login" />
-}
+} */}
 
 function RegisterAndLogout() {
   localStorage.clear()

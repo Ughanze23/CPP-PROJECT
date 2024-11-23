@@ -5,6 +5,7 @@ import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 import "../styles/Form.css";
 import LoadingIndicator from "./LoadingIndicator";
 import { Snackbar, Alert } from "@mui/material";
+import React from 'react';
 
 function Form({ route, method }) {
     const [username, setUsername] = useState("");

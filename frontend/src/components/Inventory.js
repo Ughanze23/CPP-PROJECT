@@ -15,7 +15,7 @@ import {
   DialogContent, 
   DialogTitle
 } from '@mui/material'; 
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import { MaterialReactTable } from 'material-react-table';
 import { Edit as EditIcon } from '@mui/icons-material';
 
 const Inventory = () => {

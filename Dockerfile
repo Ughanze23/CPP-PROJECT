@@ -11,7 +11,7 @@ WORKDIR /code/frontend/
 RUN npm install
 
 # build the frontend
-RUN npm run build
+RUN CI=false npm run build
 
 
 # Stage 2: build backend 
