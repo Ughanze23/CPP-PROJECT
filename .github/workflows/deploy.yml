@@ -1,67 +1,61 @@
 name: Deploy web app
 
-# Control trigger for workflow
 on:
-    # Triggers the workflow on push or pull request events but only on the "main" branch
-    push:
-      branches: ["main"]
-    pull_request:
-      branches: ["main"]
-    # Trigger workflow manually through github actions UI
-    workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
 
 jobs:
-    
+  Build-and-Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch code
+        uses: actions/checkout@v3
 
-    Build-and-Deploy:
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-        runs-on: ubuntu-latest
-        steps:
-            - name: Fetch code
-              uses: actions/checkout@v3
+      - name: Login to Dockerhub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        run: |
+          docker build \
+            --build-arg REACT_APP_API_URL="${{ secrets.REACT_APP_API_URL }}" \
+            --build-arg SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --build-arg AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
+            --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            --build-arg AWS_REGION="${{ secrets.AWS_REGION }}" \
+            --build-arg AWS_SHIPMENT_SQS_QUEUE_URL="${{ secrets.AWS_SHIPMENT_SQS_QUEUE_URL }}" \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest
 
-            - name: setup Docker Buildx
-              uses: docker/setup-buildx-action@v1
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.AWS_EC2_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.AWS_EC2_IP }} >> ~/.ssh/known_hosts
 
-            - name: Login to Dockerhub
-              uses: docker/login-action@v1
-              with:
-                username: ${{ secrets.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_TOKEN }}
-            
-            - name: build and push docker image
-              run: |
-                docker build \
-                  --build-arg REACT_APP_API_URL="${{ secrets.REACT_APP_API_URL }}" \
-                  --build-arg SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-                  --build-arg AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
-                  --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-                  --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-                  --build-arg AWS_REGION="${{ secrets.AWS_REGION }}" \
-                  --build-arg AWS_SHIPMENT_SQS_QUEUE_URL="${{ secrets.AWS_SHIPMENT_SQS_QUEUE_URL }}" \
-                  -t ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest .
-                docker push ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest
-            
-            - name: Setup SSH
-              run: |
-                  mkdir -p ~/.ssh/
-                  echo "${{ secrets.AWS_EC2_KEY }}" > ~/.ssh/id_rsa
-                  chmod 600 ~/.ssh/id_rsa
-                  ssh-keyscan -H ${{ secrets.AWS_EC2_IP }} >> ~/.ssh/known_hosts
-            
-            - name: Deploy on AWS EC2 
-              run: |
-                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.AWS_EC2_IP }} << 'EOF'
-                    docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-                    docker pull ${{ secrets.DOCKER_USERNAME }}/oms-backend:latest
-                    docker stop oms-backend || true
-                    docker rm oms-backend || true
-                    docker run -d \
-                      -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-                      -e AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
-                      -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-                      -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-                      -e AWS_REGION="${{ secrets.AWS_REGION }}" \
-                      -e AWS_SHIPMENT_SQS_QUEUE_URL="${{ secrets.AWS_SHIPMENT_SQS_QUEUE_URL }}" \
-                      --name oms-backend -p 80:8080 ${{ secrets.DOCKER_USERNAME }}/oms-backend:latest
-                  EOF
+      - name: Deploy on AWS EC2 
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.AWS_EC2_IP }} << 'EOF'
+            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest
+            docker stop oms-backend || true
+            docker rm oms-backend || true
+            docker run -d \
+              -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+              -e AWS_SQS_QUEUE_URL="${{ secrets.AWS_SQS_QUEUE_URL }}" \
+              -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+              -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+              -e AWS_REGION="${{ secrets.AWS_REGION }}" \
+              -e AWS_SHIPMENT_SQS_QUEUE_URL="${{ secrets.AWS_SHIPMENT_SQS_QUEUE_URL }}" \
+              --name oms-backend -p 80:8080 ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest
+          EOF
