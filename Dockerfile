@@ -15,7 +15,7 @@ RUN npm run build
 
 
 #stage 2: build frontend
-FROM python:3:11:2
+FROM python:3:12.4
 
 #Set Environment Variables
 ENV PYTHONDONTWRITEBYCODE 1
@@ -47,4 +47,4 @@ EXPOSE 80
 WORKDIR /code/backend/
 
 #run django server
-CMD [ "gunicorn","crud.wsgi.application","--bind","0.0.0.0:8080" ]
+CMD [ "gunicorn","crud.wsgi:application","--bind","0.0.0.0:8080" ]
