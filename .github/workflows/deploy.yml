@@ -1,0 +1,88 @@
+name: Deploy web app
+
+# Control trigger for workflow
+on:
+    # Triggers the workflow on push or pull request events but only on the "main" branch
+    #push:
+    #  branches: ["main"]
+    #pull_request:
+    #  branches: ["main"]
+    # Trigger workflow manually through github actions UI
+    workflow_dispatch:
+
+jobs:
+    CI:
+        runs-on: ubuntu-latest
+        steps:
+        # 1: Get code from GitHub
+        - name: Fetch code
+          uses: actions/checkout@v3
+        # Frontend CI
+        - name: Setup Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: '18'
+
+        - name: Install frontend dependencies
+          working-directory: ./frontend
+          run: npm install
+
+        - name: Build frontend
+          working-directory: ./frontend
+          run: npm run build
+
+        # Backend CI
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.12.4'
+
+        - name: Install backend dependencies
+          working-directory: ./backend
+          run: |
+           python -m pip install --upgrade pip
+           pip install -r requirements.txt
+
+    Build-and-Deploy:
+        needs: CI
+        runs-on: ubuntu-latest
+        steps:
+            # 1: Get code from GitHub
+            - name: Fetch code
+              uses: actions/checkout@v3
+
+            #2: setup up docker 
+            - name: setup Docker Buildx
+              uses: docker/setup-buildx-action@v1
+
+            #3: login to dockerhub account
+            - name: Login to Dockerhub
+              uses: docker/login-action@v1
+              with:
+                username: ${{ secrets.DOCKERHUB_USERNAME }}
+                password: ${{ secrets.DOCKERHUB_TOKEN }}
+            
+            #4 build and bush image to docker hub
+            - name: build and push docker image
+              run: |
+                docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest .
+                docker push ${{ secrets.DOCKERHUB_USERNAME }}/oms-backend:latest
+            
+            #5 connect to EC2 instance
+            - name: Setup SSH
+              run: |
+                  mkdir -p ~/.ssh/
+                  echo "${{ secrets.AWS_EC2_KEY }}" > ~/.ssh/id_rsa
+                  chmod 600 ~/.ssh/id_rsa
+                  ssh-keyscan -H ${{ secrets.AWS_EC2_IP }} >> ~/.ssh/known_hosts
+            
+            #5 deploy to aws
+            - name: Deploy on AWS EC2 
+              run: |
+                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.AWS_EC2_IP }} << 'EOF'
+                    docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+                    docker pull ${{ secrets.DOCKER_USERNAME }}/oms-backend:latest
+                    docker stop oms-backend || true
+                    docker rm oms-backend || true
+                    docker run -d --name oms-backend -p 80:8000 ${{ secrets.DOCKER_USERNAME }}/oms-backend:latest
+                  EOF 
