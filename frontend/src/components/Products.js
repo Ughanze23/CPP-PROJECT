@@ -59,7 +59,7 @@ const Products = () => {
   const [editData, setEditData] = useState(null);
 
 
-  const { setValue, handleSubmit, control, reset } = useForm({ defaultValues });
+  const {  handleSubmit, control, reset } = useForm({ defaultValues });
 
   const fetchCategories = async () => {
     try {
@@ -172,6 +172,7 @@ const Products = () => {
       }
 
       const result = await response.json();
+      console.log("Upload response:", result); 
       setSnackbarMessage("Image uploaded successfully!");
       setSnackbarSeverity("success");
       return true;

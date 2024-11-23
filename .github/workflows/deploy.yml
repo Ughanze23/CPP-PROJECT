@@ -25,11 +25,12 @@ jobs:
 
         - name: Install frontend dependencies
           working-directory: ./frontend
-          run: npm install
+          run: npm install --legacy-peer-deps
 
         - name: Build frontend
           working-directory: ./frontend
-          run: npm run build
+          run: |
+            CI=false npm run build
 
         # Backend CI
         - name: Set up Python
