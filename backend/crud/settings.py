@@ -157,8 +157,11 @@ CORS_ALLOWED_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://ec2-34-242-244-88.eu-west-1.compute.amazonaws.com"
 ]
+
+ROOT_URLCONF = "crud.urls"
 
 AWS_INVENTORY_SQS_QUEUE_URL = os.environ.get('AWS_SQS_QUEUE_URL')
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
