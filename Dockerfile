@@ -58,7 +58,7 @@ ENV SECRET_KEY=${SECRET_KEY} \
 # run django migration command
 RUN python manage.py migrate  
 
-RUN python ./backend/manage.py collectstatic --no-input
+RUN python manage.py collectstatic --no-input
 
 # Expose port
 EXPOSE 80
