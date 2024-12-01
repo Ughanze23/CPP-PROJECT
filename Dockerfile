@@ -63,7 +63,7 @@ ENV SECRET_KEY=${SECRET_KEY} \
 
 
 # run django migration command
-RUN python manage.py migrate  
+#RUN python manage.py migrate  
 
 RUN python manage.py collectstatic --no-input
 
