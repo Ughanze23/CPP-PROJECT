@@ -79,7 +79,7 @@ const Home = () => {
         shipment => shipment.status === 'PENDING'
       ).length;
 
-      // Fetch active notifications
+      // Fetch active notifications/tasks
       const notifications = await api.get('/api/notifications/');
       const activeNotifications = notifications.data.filter(
         notification => notification.status === 'OPEN'

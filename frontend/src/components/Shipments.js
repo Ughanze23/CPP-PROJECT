@@ -120,7 +120,7 @@ const [loadingShipments, setLoadingShipments] = useState(true);
     []
   );
 
-
+  //columns of shipment orders table
   const shipmentOrderColumns = useMemo(
     () => [
       {
@@ -184,7 +184,7 @@ const [loadingShipments, setLoadingShipments] = useState(true);
 
   const deliveryZones = Array.from({ length: 24 }, (_, i) => i + 1);
 
-  // Submit form for adding a new shipment
+  // create shipping partner
   const onSubmit1 = async (data) => {
     try {
       await api.post("/api/shipping/", {
@@ -206,7 +206,7 @@ const [loadingShipments, setLoadingShipments] = useState(true);
     }
   };
 
-  // Submit form for editing an existing shipment
+  // update shipping partner details
   const onSubmitEdit = async (data) => {
     try {
       await api.put(`/api/shipping/${selectedShipment.id}/`, {
@@ -229,7 +229,7 @@ const [loadingShipments, setLoadingShipments] = useState(true);
     }
   };
 
-  // Handle delete confirmation
+  // delete shipping partner
   const handleDelete = async () => {
     if (!deleteShippingPartnerId) {
       console.error('No shipping partner ID to delete');
@@ -349,8 +349,8 @@ const [loadingShipments, setLoadingShipments] = useState(true);
               <IconButton
               color="secondary"
                 onClick={() => {
-                  setSelectedShipment(row.original); // Set the selected shipment for editing
-                  setShowEditForm(true); // Open the edit form
+                  setSelectedShipment(row.original); 
+                  setShowEditForm(true); 
                   setValue('logistics_company', row.original.logistics_company);
                   setValue('contact_person', row.original.contact_person);
                   setValue('email', row.original.email);

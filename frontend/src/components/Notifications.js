@@ -125,13 +125,13 @@ const handleStatusUpdate = async () => {
       throw new Error("New status is not selected");
     }
 
-    // Find the current notification
+    // current notification
     const currentNotification = notifications.find((notification) => notification.id === currentId);
     if (!currentNotification) {
       throw new Error("Notification not found");
     }
 
-    // Send the PUT request to update the status
+    // update the status
     await api.put(`/api/notifications/${currentId}/`, {
      
       type : currentNotification.type,

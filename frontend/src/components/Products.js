@@ -120,7 +120,7 @@ const Products = () => {
       accessorKey: 'category.name', 
       header: 'Category', 
       size: 150,
-      // Add cell renderer to handle null category
+      //  handle null category
       Cell: ({ row }) => {
         return row.original.category?.name || 'No Category';
       }
@@ -166,8 +166,8 @@ const Products = () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Failed to upload Product image. Response:", errorText);
+        const errorMsg = await response.text();
+        console.error("Failed to upload Product image. Response:", errorMsg);
         throw new Error("Failed to upload Product image");
       }
 
@@ -220,7 +220,7 @@ const handleDelete = async () => {
     let name = "";
     let categoryName = "";
 
-    // Determine the name and category (if applicable) of the item to delete
+
     if (deleteType === "category") {
       const category = categories.find((cat) => cat.id === deleteItemId);
       name = category ? category.name : "";
@@ -230,7 +230,7 @@ const handleDelete = async () => {
       categoryName = product?.category?.name || "";
     }
 
-    // Make the Lambda call to validate the delete operation
+    // trigger lambda function
     const response = await fetch(
       "https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/",
       {
@@ -244,14 +244,14 @@ const handleDelete = async () => {
         }),
       }
     );
-    const lambdaPayload = {
+    const lambdaResponse = {
       name,
       category: deleteType === "product" ? categoryName : undefined,
       option: deleteType,
       httpMethod: "DELETE",
     };
       // Log the payload being sent to Lambda
-      console.log("Payload sent to Lambda:", lambdaPayload);
+      console.log("Payload sent to Lambda:", lambdaResponse);
 
     // Check if the Lambda call was successful
     if (!response.ok) {
@@ -266,16 +266,16 @@ const handleDelete = async () => {
     const lambdaResult = await response.json();
     console.log("Lambda response:", lambdaResult);
 
-    // Proceed with database deletion if Lambda call is successful
+    // delete category if bucket deletion successful
     if (deleteType === "category") {
       await api.delete(`/api/categories/${deleteItemId}/`);
       setSnackbarMessage("Category deleted successfully!");
-      fetchCategories(); // Refresh categories list
-      fetchProducts(); // Refresh products list (to remove products in deleted category)
+      fetchCategories(); // fetch categories data
+      fetchProducts(); // fetch products data
     } else if (deleteType === "product") {
       await api.delete(`/api/products/${deleteItemId}/`);
       setSnackbarMessage("Product deleted successfully!");
-      fetchProducts(); // Refresh products list
+      fetchProducts(); // fetch products data
     }
 
     setSnackbarSeverity("success");
@@ -288,7 +288,7 @@ const handleDelete = async () => {
     );
     setSnackbarSeverity("error");
   } finally {
-    // Close dialog and reset state variables
+    // Close dialog 
     setSnackbarOpen(true);
     setConfirmDeleteOpen(false);
     setDeleteItemId(null);
@@ -325,7 +325,7 @@ const handleDelete = async () => {
         throw new Error("Failed to create bucket");
       }
   
-      //
+      
       setSnackbarMessage("Category created successfully!");
       setSnackbarSeverity("success");
       reset();
@@ -383,7 +383,7 @@ const handleDelete = async () => {
     }
   };
 
-  // Open edit modals with pre-filled data
+  // Open edit modals 
   const handleEditClick = (row, type) => {
     if (type === 'category') {
       const category = row.original;
@@ -398,7 +398,7 @@ const handleDelete = async () => {
       editForm.reset({
         ProductName: product.name,
         ProductDescription: product.description,
-        // Safely handle null category
+       
         category: product.category?.id?.toString() || "",
         price: product.price,
         stock_quantity: product.stock_quantity
@@ -416,7 +416,6 @@ const handleEditModalClose = () => {
 };
 
 // PUT requests for editing
-// Modified edit submit handlers
 const handleEditCategorySubmit = async (data) => {
   try {
     await api.put(`/api/categories/${editData.id}/`, {
@@ -437,6 +436,7 @@ const handleEditCategorySubmit = async (data) => {
   }
 };
 
+//update product details
 const handleEditProductSubmit = async (data) => {
   try {
     const categoryId = data.category ? parseInt(data.category) : null;

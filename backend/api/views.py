@@ -16,7 +16,7 @@ from .serializers import (
 import logging
 
 
-# Create your views here.
+
 def home(requests):
     return HttpResponse("this is the homepage")
 

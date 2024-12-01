@@ -1,3 +1,13 @@
+import json
+import psycopg2
+import boto3
+import logging
+from botocore.exceptions import ClientError
+from inventory_optimizer_package_23384069 import InventoryOptimizer
+import os
+from datetime import datetime
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
 def lambda_handler(event, context):
     conn = None
     new_notifications_count = 0

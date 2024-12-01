@@ -59,6 +59,7 @@ const PurchaseOrder = () => {
     fetchData();
   }, []);
 
+  //table columns
   const columns = useMemo(() => [
     { accessorKey: 'id', header: 'PO #', size: 100 },
     { accessorKey: 'product.name', header: 'Product', size: 200 },
@@ -78,7 +79,7 @@ const PurchaseOrder = () => {
     setSnackbarOpen(false);
   };
 
-  // submit form for creating new purchase orders
+  // create purchase order
   const onSubmit = async (data) => {
     try {
       const expDate = dayjs(data.expected_delivery_date["$d"]).format("YYYY-MM-DD");
@@ -105,6 +106,7 @@ const PurchaseOrder = () => {
     }
   };
 
+  //delete purchase order
   const handleDelete = async () => {
     if (!deletePOId) {
       console.error('No #PO ID to delete');
@@ -133,16 +135,17 @@ const PurchaseOrder = () => {
     setEditStatusModalOpen(true);
   };
 
+  //update purchase order
   const handleStatusUpdate = async () => {
     try {
       // Retrieve the new_status value from the form
       const { new_status } = getValues();
   
       if (!new_status) {
-        throw new Error("New status is not selected");
+        throw new Error("status is not selected");
       }
   
-      // Fetch the full details of the current purchase order
+      // get current purchase order details
       const currentPO = purchaseOrders.find((po) => po.id === currentPOId);
       if (!currentPO) {
         throw new Error("Purchase order not found");

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from api.views import CreateUserView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.conf import settings  # Change this import
+from django.conf import settings  
 from django.conf.urls.static import static
 from .views import index 
 
@@ -19,7 +19,7 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-# Change this pattern
+#if url cant be found display index.html page.
 urlpatterns += [
     re_path(r'^(?!admin|api).*$', index, name='index')  
 ]

@@ -8,7 +8,7 @@ from django.db import transaction
 import json
 import boto3
 
-# Create your models here.
+#database tables below
 class ProductCategory(models.Model):
     """Product Category Table"""
     name = models.CharField(max_length=100, unique=True)
@@ -36,19 +36,17 @@ class Product(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        # Check if the product is being created (not updated)
         is_new = self.pk is None
         super().save(*args, **kwargs)
 
         if is_new:
-            # Create an initial inventory record with the stock_quantity provided
             Inventory.objects.create(
                 product=self,
                 quantity=self.stock_quantity,
                 status="ADD",
                 notes="Initial stock on product creation",
                 updated_by=self.created_by,
-                expiry_date=timezone.now() + timedelta(days=180),  # Default expiry set to 6 months from now
+                expiry_date=timezone.now() + timedelta(days=180),  
             )
 
 
@@ -60,22 +58,22 @@ class Inventory(models.Model):
         max_length=50,
         choices=[("ADD", "Addition"), ("REMOVE", "Removal"), ("RETURN", "Return"), ("ADJUST", "Adjustment")]
     )
-    notes = models.TextField(blank=True, null=True)  # Optional field for extra details
+    notes = models.TextField(blank=True, null=True)  
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="inventory_updated_by")
     created_at = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateField(null=True, blank=True)
     batch_id = models.CharField(max_length=100, editable=False, unique=True, null=True) 
 
     class Meta:
-        # Ensure unique combination of product, created_at, and expiry_date for batch tracking
+        #create unique row (batcht_id) based on the columns below
         unique_together = ("product", "created_at", "expiry_date")
 
     def save(self, *args, **kwargs):
         """Override the save method to automatically update the stock quantity of the related product and set batch_id."""
-        # Save the instance first to populate created_at
+     
         super().save(*args, **kwargs)
 
-        # Now, generate batch_id if it wasn't set before
+        # generate bacth id
         if not self.batch_id:
             self.batch_id = f"{self.product.id}-{self.created_at.strftime('%Y%m%d%H%M%S')}"
             # Save again to store the batch_id in the database
@@ -89,7 +87,7 @@ class Inventory(models.Model):
 
         self.product.save()
 
-        # Add queue call here for REMOVE operations
+        # queue operation for lambda function
         if self.status == "REMOVE":
             queue = InventoryOptimizationQueue(settings.AWS_INVENTORY_SQS_QUEUE_URL)
             queue.queue_product_id(self.product.id)
@@ -137,7 +135,7 @@ class PurchaseOrder(models.Model):
         """Handle inventory when an order is marked as 'Received'."""
         super().save(*args, **kwargs)  
 
-        # Now, set the batch_id if it wasn't set before
+        # create batch id
         if not self.batch_id:
             self.batch_id = f"PO-{self.id}-{self.order_date.strftime('%Y%m%d%H%M%S')}"
             super().save(update_fields=['batch_id'])  
@@ -178,6 +176,7 @@ class Shipment(models.Model):
         return f"{self.logistics_company} - {self.contact_person} ({self.status})"
 
 class Notification(models.Model):
+    """Notifications/Recommended actions table"""
     STATUS_CHOICES = [
         ("OPEN", "Open"),
         ("IN_PROGRESS", "In Progress"),
@@ -202,7 +201,7 @@ class Customer(models.Model):
     phone = models.CharField(max_length=12, blank=True, null=True)
     eir_code = models.CharField(max_length=7)  # Irish postal code
     zone = models.IntegerField(
-        choices=[(i, str(i)) for i in range(1, 25)],  # 1-24
+        choices=[(i, str(i)) for i in range(1, 25)],  
         help_text="Delivery zone (1-24)"
     )
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="customers_created_by")
@@ -255,7 +254,7 @@ class OrderItem(models.Model):
                 product=self.product,
                 status__in=["ADD", "RETURN"]
             ).order_by('expiry_date')
-
+            # handles creation of orders
             for batch in batches:
                 if remaining_quantity <= 0:
                     break
@@ -273,7 +272,7 @@ class SalesOrder(models.Model):
     """Sales Order Table"""
     STATUS_CHOICES = [
         ("PAID", "Paid"),
-        ("CANCELLED", "Cancelled")  # For returned orders
+        ("CANCELLED", "Cancelled")  
     ]
     
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='sales_order')

@@ -26,10 +26,10 @@ class ProductCategorySerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        """Check that the category name is unique, except when updating the same record."""
-        category = self.instance  # This refers to the current instance being updated
+        """Check that the category name is unique"""
+        category = self.instance  
 
-        # If the name is being updated and is already taken by another category, raise an error
+
         if category and category.name != value and ProductCategory.objects.filter(name=value).exists():
             raise ValidationError("A category with this name already exists.")
         return value
@@ -56,10 +56,10 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        """Check that the product name is unique, except when updating the same record."""
-        product = self.instance  # This refers to the current instance being updated
+        """Check that the product name is unique"""
+        product = self.instance  
 
-        # If the name is being updated and is already taken by another product, raise an error
+      
         if product and product.name != value and Product.objects.filter(name=value).exists():
             raise ValidationError("A product with this name already exists.")
         return value
@@ -102,28 +102,28 @@ class SupplierSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at"]
 
     def validate_name(self, value):
-        """Check that the supplier name is unique, except when updating the same record."""
-        supplier = self.instance  # This refers to the current instance being updated
+        """Check that the supplier name is unique"""
+        supplier = self.instance  
 
-        # If the name is being updated and is already taken by another supplier, raise an error
+
         if supplier and supplier.name != value and Supplier.objects.filter(name=value).exists():
             raise ValidationError("A supplier with this name already exists.")
         return value
 
     def validate_contact_email(self, value):
-        """Check that the supplier email is unique, except when updating the same record."""
-        supplier = self.instance  # This refers to the current instance being updated
+        """Check that the supplier email is unique"""
+        supplier = self.instance 
 
-        # If the email is being updated and is already taken by another supplier, raise an error
+     
         if supplier and supplier.contact_email != value and Supplier.objects.filter(contact_email=value).exists():
             raise ValidationError("A supplier with this email already exists.")
         return value
 
     def validate_contact_phone(self, value):
-        """Check that the supplier phone number is unique, except when updating the same record."""
-        supplier = self.instance  # This refers to the current instance being updated
+        """Check that the supplier phone number is unique"""
+        supplier = self.instance  
 
-        # If the phone number is being updated and is already taken by another supplier, raise an error
+
         if supplier and supplier.contact_phone != value and Supplier.objects.filter(contact_phone=value).exists():
             raise ValidationError("A supplier with this phone number already exists.")
         return value
@@ -145,7 +145,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(), source='product', write_only=True
     )
-    batch_id = serializers.CharField(read_only=True)  # Expose batch_id as a read-only field
+    batch_id = serializers.CharField(read_only=True)  
 
     class Meta:
         model = PurchaseOrder
@@ -159,39 +159,39 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create purchase order"""
         validated_data['created_by'] = self.context['request'].user
-        # Create the purchase order instance
+        # Create purchase order instance
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         """Update inventory once stock is received"""
-        # Retrieve the new status from validated_data
+
         new_status = validated_data.get("status", instance.status)
 
-        # Only create inventory if the status is being changed to 'RECEIVED'
+        # create inventory if status received
         if new_status == "RECEIVED" and instance.status != "RECEIVED":
-            # Set a default expiry period of 1 year (or customize as needed)
-            default_expiry_period = 365
+      
+            default_expiry_period = 180
             expiry_date = (
                 instance.expected_delivery_date + timedelta(days=default_expiry_period)
                 if instance.expected_delivery_date
                 else None
             )
 
-            # Generate batch_id using the PO ID and order date if not already set
+            # Generate batch_id
             if not instance.batch_id:
                 instance.batch_id = f"PO-{instance.id}-{instance.order_date.strftime('%Y%m%d%H%M%S')}"
 
-            # Create an inventory record for the received products
+            # Create an inventory record 
             Inventory.objects.create(
                 product=instance.product,
                 quantity=instance.quantity,
                 status="ADD",
                 notes=f"Stock received from Purchase Order {instance.id}",
-                updated_by=self.context['request'].user,  # Log the user who received the stock
-                expiry_date=expiry_date  # Set calculated expiry date
+                updated_by=self.context['request'].user, 
+                expiry_date=expiry_date  
             )
 
-        # Update the purchase order instance with the validated data
+
         return super().update(instance, validated_data)
 
 
@@ -206,18 +206,18 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
     def validate_logistics_company(self, value):
         """Check that the logistics company name is unique, except when updating the same record."""
-        shipment = self.instance  # This refers to the current instance being updated
+        shipment = self.instance  
 
-        # If the logistics company name is being updated and is already taken by another shipment, raise an error
+
         if shipment and shipment.logistics_company != value and Shipment.objects.filter(logistics_company=value).exists():
             raise ValidationError("A logistics company with this name already exists.")
         return value
 
     def validate_email(self, value):
         """Check that the email is unique, except when updating the same record."""
-        shipment = self.instance  # This refers to the current instance being updated
+        shipment = self.instance  
 
-        # If the email is being updated and is already taken by another shipment, raise an error
+      
         if shipment and shipment.email != value and Shipment.objects.filter(email=value).exists():
             raise ValidationError("A shipment with this email already exists.")
         return value
@@ -228,8 +228,8 @@ class ShipmentSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class NotificationSerializer(serializers.ModelSerializer):
-    batch_id = serializers.CharField(source='batch_id.batch_id', read_only=True)  # Read-only
-    product_name = serializers.CharField(source='product_name.name', read_only=True)  # Read-only
+    batch_id = serializers.CharField(source='batch_id.batch_id', read_only=True)  
+    product_name = serializers.CharField(source='product_name.name', read_only=True)  
 
     class Meta:
         model = Notification
@@ -273,7 +273,7 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_id = serializers.PrimaryKeyRelatedField(
         queryset=Customer.objects.all(), source='customer', write_only=True
     )
-    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)  # Make it read-only
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)  
 
     class Meta:
         model = Order
@@ -285,7 +285,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context['request'].user
-        validated_data["total_amount"] = 0  # Initialize to 0, will be updated when OrderItems are added
+        validated_data["total_amount"] = 0  
         return super().create(validated_data)
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -330,7 +330,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "id", "order", "product", "product_id",
             "quantity", "unit_price", "created_at"
         ]
-        read_only_fields = ["created_at", "unit_price"]  # Make unit_price read-only
+        read_only_fields = ["created_at", "unit_price"]  
 
     def validate(self, data):
         """Validate if there's enough stock"""
@@ -351,7 +351,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        """Set unit_price from product's current price during creation"""
+        """Set unit_price from product's current price """
         validated_data['unit_price'] = validated_data['product'].price
         return super().create(validated_data)
 
@@ -377,7 +377,7 @@ class SalesOrderSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "created_at", "updated_at", "total_amount"]
 
     def validate_order(self, value):
-        """Ensure order has items and is not already processed"""
+        """Ensure order has items"""
         if not value.items.exists():
             raise ValidationError("Cannot create sales order for an order without items")
         if hasattr(value, 'sales_order'):
