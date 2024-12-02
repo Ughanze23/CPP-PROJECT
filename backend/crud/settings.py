@@ -97,6 +97,7 @@ WSGI_APPLICATION = "crud.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+#values hardcoded because of issues with github actions not parsing the passwords properly in the pipeline
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -104,7 +105,7 @@ DATABASES = {
         "USER": "postgres",
         "PASSWORD": "K$K$rot2024",
         "HOST": "database-1.cvhifpi70v8r.us-east-1.rds.amazonaws.com",
-        "PORT": 5432  
+        "PORT": 5432 
     }
 }
 

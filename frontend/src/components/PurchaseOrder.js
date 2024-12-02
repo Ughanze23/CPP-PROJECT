@@ -181,6 +181,7 @@ const PurchaseOrder = () => {
   
   return (
     <div>
+          {/* purchase order form */}
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '70%', marginBottom: '10px' }}>
           <Typography variant="h6" sx={{ marginLeft: '20px' }}>Create Purchase Order</Typography>

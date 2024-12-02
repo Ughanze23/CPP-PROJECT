@@ -36,6 +36,9 @@ const Products = () => {
     }
   });
 
+//reference 
+//https://github.com/NickMol/Django-React-Tutorial
+
   // State management
   const [showForm1, setShowForm1] = useState(false);
   const [showForm2, setShowForm2] = useState(false);
@@ -48,7 +51,7 @@ const Products = () => {
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // New state for delete functionality
+  // state for delete functionality
   const [deleteItemId, setDeleteItemId] = useState(null);
   const [deleteType, setDeleteType] = useState(null); // 'category' or 'product'
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -61,6 +64,7 @@ const Products = () => {
 
   const {  handleSubmit, control, reset } = useForm({ defaultValues });
 
+  //get category data
   const fetchCategories = async () => {
     try {
       const response = await api.get('/api/categories/');
@@ -76,6 +80,7 @@ const Products = () => {
     }
   };
 
+  //get product data
   const fetchProducts = async () => {
     try {
       const response = await api.get('/api/products/');
@@ -152,7 +157,7 @@ const Products = () => {
         (category) => String(category.id) === String(data.category)
       );
   
-
+      //upload image
       const response = await fetch("https://cjolda5u5v2y5b7q6swrtylpli0rypse.lambda-url.eu-west-1.on.aws/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,7 +256,7 @@ const handleDelete = async () => {
       httpMethod: "DELETE",
     };
       // Log the payload being sent to Lambda
-      console.log("Payload sent to Lambda:", lambdaResponse);
+      //console.log("Payload sent to Lambda:", lambdaResponse);
 
     // Check if the Lambda call was successful
     if (!response.ok) {
@@ -359,6 +364,7 @@ const handleDelete = async () => {
       return;
     }
 
+    //create product
     try {
       await api.post("/api/products/", {
         name: data.ProductName,
@@ -469,6 +475,7 @@ const handleEditProductSubmit = async (data) => {
             <Button variant="contained" onClick={handleForm1} fullWidth>
               Create Category
             </Button>
+            {/* Category form */}
             {showForm1 && (
               <form onSubmit={handleSubmit(onSubmit1)} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <MyTextField
@@ -498,6 +505,7 @@ const handleEditProductSubmit = async (data) => {
             <Button variant="contained" onClick={handleForm2} fullWidth>
               Create Product
             </Button>
+                {/* product form */}
             {showForm2 && (
               <form onSubmit={handleSubmit(onSubmit2)} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <MyTextField

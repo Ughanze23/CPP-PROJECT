@@ -7,6 +7,9 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from django.db import models
 
+##reference 
+##https://github.com/NickMol/Django-React-Tutorial
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
