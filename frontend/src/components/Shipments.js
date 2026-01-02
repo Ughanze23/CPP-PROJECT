@@ -229,7 +229,7 @@ const [loadingShipments, setLoadingShipments] = useState(true);
     }
   };
 
-  // delete shipping partner
+  // delete shipping
   const handleDelete = async () => {
     if (!deleteShippingPartnerId) {
       console.error('No shipping partner ID to delete');
@@ -272,7 +272,6 @@ const [loadingShipments, setLoadingShipments] = useState(true);
   }, []);
 
   return (
-        {/* delivery partner form */}
     <div>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
@@ -350,8 +349,8 @@ const [loadingShipments, setLoadingShipments] = useState(true);
               <IconButton
               color="secondary"
                 onClick={() => {
-                  setSelectedShipment(row.original); 
-                  setShowEditForm(true); 
+                  setSelectedShipment(row.original); // Set the selected shipment for editing
+                  setShowEditForm(true); // Open the edit form
                   setValue('logistics_company', row.original.logistics_company);
                   setValue('contact_person', row.original.contact_person);
                   setValue('email', row.original.email);

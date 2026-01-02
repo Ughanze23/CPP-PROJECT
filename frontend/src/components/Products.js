@@ -256,7 +256,7 @@ const handleDelete = async () => {
       httpMethod: "DELETE",
     };
       // Log the payload being sent to Lambda
-      //console.log("Payload sent to Lambda:", lambdaResponse);
+      console.log("Payload sent to Lambda:", lambdaResponse);
 
     // Check if the Lambda call was successful
     if (!response.ok) {
