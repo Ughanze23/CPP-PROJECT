@@ -68,6 +68,7 @@ The application implements a serverless, event-driven architecture using AWS ser
                                             │  Optimizer   │
                                             └──────────────┘
 ```
+![alt text](image.png)
 
 ### Architecture Principles
 
